@@ -281,7 +281,7 @@ export function RecentBlogsSection() {
             <BlogCard
               key={blog.id}
               blog={blog}
-              onRead={() => navigate(PATHS.BLOG_DETAILS)}
+              onRead={() => navigate(PATHS.BLOG_DETAILS, { search: `?id=${blog.id}` })}
             />
           ))}
         </div>
@@ -299,7 +299,7 @@ export function RecentBlogsSection() {
             >
               <BlogCard
                 blog={blog}
-                onRead={() => navigate(PATHS.BLOG_DETAILS)}
+                onRead={() => navigate(PATHS.BLOG_DETAILS, { search: `?id=${blog.id}` })}
               />
             </div>
           ))}
