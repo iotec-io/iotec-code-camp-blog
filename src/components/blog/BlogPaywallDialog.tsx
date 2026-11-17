@@ -6,11 +6,9 @@ import {
   ChevronDown,
   Loader2,
   Lock,
-  ShieldCheck,
   Smartphone,
   Sparkles,
   X,
-  Zap,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -180,13 +178,8 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
           id="paywall-dialog-title"
           className="mt-4 text-center font-serif text-xl leading-snug font-medium tracking-tight text-foreground sm:text-2xl"
         >
-          Support Independent Writing &amp; Unlock Full Essay
+          Support Independent Writing &amp; Unlock Full Blog
         </h2>
-
-        <p className="mx-auto mt-2 max-w-md text-center text-xs leading-relaxed text-muted-foreground">
-          Access this complete 4,200-word deep-dive, annotated system blueprints,
-          and complete archival essays with instant Mobile Money authorization.
-        </p>
 
         {/* Contribution Price Pill */}
         <div className="mx-auto mt-4 inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-amber-200/80 bg-amber-50/60 px-4 py-1.5">
@@ -319,9 +312,6 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
                     <span className="text-[10px] font-semibold tracking-[0.08em] text-foreground/80 uppercase">
                       Select Mobile Money Network
                     </span>
-                    <span className="text-[9px] font-semibold tracking-[0.08em] text-amber-600 uppercase">
-                      Instant Handset Push
-                    </span>
                   </div>
 
                   <div
@@ -440,35 +430,35 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
               )}
 
               {/* Mock USSD Outcome Toggle for Testing */}
-              <div className="mt-4 flex items-center justify-between rounded-lg border border-dashed border-border bg-card/40 px-3 py-2 text-[11px]">
-                <span className="text-muted-foreground">
-                  Simulated USSD Result:
-                </span>
-                <div className="inline-flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setMockOutcome('approve')}
-                    className={`cursor-pointer rounded px-2 py-0.5 text-[10px] font-semibold transition-colors ${
-                      mockOutcome === 'approve'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Succeed
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMockOutcome('fail')}
-                    className={`cursor-pointer rounded px-2 py-0.5 text-[10px] font-semibold transition-colors ${
-                      mockOutcome === 'fail'
-                        ? 'bg-red-100 text-red-800'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Fail
-                  </button>
-                </div>
-              </div>
+              {/*<div className="mt-4 flex items-center justify-between rounded-lg border border-dashed border-border bg-card/40 px-3 py-2 text-[11px]">*/}
+              {/*  <span className="text-muted-foreground">*/}
+              {/*    Simulated USSD Result:*/}
+              {/*  </span>*/}
+              {/*  <div className="inline-flex items-center gap-1">*/}
+              {/*    <button*/}
+              {/*      type="button"*/}
+              {/*      onClick={() => setMockOutcome('approve')}*/}
+              {/*      className={`cursor-pointer rounded px-2 py-0.5 text-[10px] font-semibold transition-colors ${*/}
+              {/*        mockOutcome === 'approve'*/}
+              {/*          ? 'bg-emerald-100 text-emerald-800'*/}
+              {/*          : 'text-muted-foreground hover:text-foreground'*/}
+              {/*      }`}*/}
+              {/*    >*/}
+              {/*      Succeed*/}
+              {/*    </button>*/}
+              {/*    <button*/}
+              {/*      type="button"*/}
+              {/*      onClick={() => setMockOutcome('fail')}*/}
+              {/*      className={`cursor-pointer rounded px-2 py-0.5 text-[10px] font-semibold transition-colors ${*/}
+              {/*        mockOutcome === 'fail'*/}
+              {/*          ? 'bg-red-100 text-red-800'*/}
+              {/*          : 'text-muted-foreground hover:text-foreground'*/}
+              {/*      }`}*/}
+              {/*    >*/}
+              {/*      Fail*/}
+              {/*    </button>*/}
+              {/*  </div>*/}
+              {/*</div>*/}
 
               {/* Submit CTA */}
               <Button
@@ -501,25 +491,6 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
             </form>
           </>
         )}
-
-        {/* Bottom Trust Metadata Bar */}
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 bg-card/50 px-3.5 py-2.5 text-[10px] text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5">
-            <ShieldCheck aria-hidden="true" className="size-3 text-amber-600" />
-            <span>100% direct creator funding. No recurring subscription traps.</span>
-          </span>
-
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1">
-              <Lock aria-hidden="true" className="size-2.5" />
-              <span>256-bit TLS</span>
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Zap aria-hidden="true" className="size-2.5" />
-              <span>Instant Settlement</span>
-            </span>
-          </div>
-        </div>
       </Card>
     </div>
   )

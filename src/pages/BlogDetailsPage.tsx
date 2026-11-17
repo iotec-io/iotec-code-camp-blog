@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react'
 import { ArrowLeft, Lock } from 'lucide-react'
+import { BlogArticleHeader } from '@/components/blog/BlogArticleHeader'
+import { BlogContent } from '@/components/blog/BlogContent'
+import { BlogPaywallDialog } from '@/components/blog/BlogPaywallDialog'
 import { Button } from '@/components/ui/button'
 import { getAuthorizedBlogHtml, MOCK_BLOGS } from '@/data/mockBlogs'
 import { useLocation, useNavigate } from '@/navigation/RouterContext'
@@ -22,8 +25,21 @@ export function BlogDetailsPage() {
   }, [search])
 
   const isUnlocked = !activeBlog.isPaid || Boolean(unlockedBlogIds[activeBlog.id])
+  const isLocked = activeBlog.isPaid && !isUnlocked
 
+  // Only the authorized HTML (previewContentHtml when locked, fullContentHtml when unlocked/free)
+  // is ever passed to BlogContent or rendered in the DOM.
+  const authorizedHtml = useMemo(
+      () => getAuthorizedBlogHtml(activeBlog, isUnlocked),
+      [activeBlog, isUnlocked],
+  )
 
+  const handleUnlockCurrentBlog = () => {
+    setUnlockedBlogIds((prev) => ({
+      ...prev,
+      [activeBlog.id]: true,
+    }))
+  }
 
   const handleRelockCurrentBlog = () => {
     setUnlockedBlogIds((prev) => ({
@@ -33,42 +49,47 @@ export function BlogDetailsPage() {
   }
 
   return (
-    <article className="mx-auto flex w-full max-w-2xl flex-1 flex-col py-8 sm:py-12">
-      {/* Top Navigation & Demo Controls */}
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => navigate(PATHS.LANDING)}
-          className="bg-white px-3.5 py-1.5 text-xs font-medium shadow-2xs"
-        >
-          <ArrowLeft aria-hidden="true" className="size-3.5 text-muted-foreground" />
-          <span>Back to Landing</span>
-        </Button>
-
-        {activeBlog.isPaid && isUnlocked && (
+      <article className="mx-auto flex w-full max-w-2xl flex-1 flex-col py-8 sm:py-12">
+        {/* Top Navigation & Demo Controls */}
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
           <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            onClick={handleRelockCurrentBlog}
-            className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(PATHS.LANDING)}
+              className="bg-white px-3.5 py-1.5 text-xs font-medium shadow-2xs"
           >
-            <Lock aria-hidden="true" className="size-3" />
-            <span>Lock Paywall Preview</span>
+            <ArrowLeft aria-hidden="true" className="size-3.5 text-muted-foreground" />
+            <span>Back to Landing</span>
           </Button>
+
+          {activeBlog.isPaid && isUnlocked && (
+              <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  onClick={handleRelockCurrentBlog}
+                  className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <Lock aria-hidden="true" className="size-3" />
+                <span>Lock Paywall Preview</span>
+              </Button>
+          )}
+        </div>
+
+        {/* 1. Article Header (Badges, Read Time, Date, Title, Subtitle, Featured Image, Author) */}
+        <BlogArticleHeader blog={activeBlog} isUnlocked={isUnlocked} />
+
+        {/* 2. Rich-Text Article Content (Strictly preview-only HTML when locked) */}
+        <BlogContent html={authorizedHtml} isLocked={isLocked} />
+
+        {/* 3. Paywall Dialog (Displayed when blog is paid and not unlocked) */}
+        {isLocked && (
+            <BlogPaywallDialog
+                priceAmount={activeBlog.priceAmount}
+                onUnlock={handleUnlockCurrentBlog}
+            />
         )}
-      </div>
-
-      {/* 1. Article Header (Badges, Read Time, Date, Title, Subtitle, Featured Image, Author) */}
-
-
-      {/* 2. Rich-Text Article Content (Strictly preview-only HTML when locked) */}
-
-
-      {/* 3. Paywall Dialog (Displayed when blog is paid and not unlocked) */}
-
-    </article>
+      </article>
   )
 }

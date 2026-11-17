@@ -14,7 +14,7 @@ function formatStepNumber(num: number): string {
   return String(Math.max(1, num)).padStart(2, '0')
 }
 
-function BlogCard({ blog, onRead }: { blog: BlogPostPreview; onRead: () => void }) {
+function BlogCard({ blog, onClick }: { blog: BlogPostPreview; onClick: () => void }) {
   return (
     <Card className="group flex h-full flex-col gap-0 overflow-hidden rounded-xl border-border bg-white p-0 py-0 shadow-2xs transition-shadow hover:shadow-md">
       <div className="aspect-16/10 w-full overflow-hidden bg-muted">
@@ -65,7 +65,7 @@ function BlogCard({ blog, onRead }: { blog: BlogPostPreview; onRead: () => void 
             type="button"
             variant="link"
             size="xs"
-            onClick={onRead}
+            onClick={onClick}
             className="h-auto gap-1.5 p-0 text-xs font-medium text-primary hover:no-underline"
           >
             <span>Read</span>
@@ -281,7 +281,7 @@ export function RecentBlogsSection() {
             <BlogCard
               key={blog.id}
               blog={blog}
-              onRead={() => navigate(PATHS.BLOG_DETAILS, { search: `?id=${blog.id}` })}
+              onClick={() => navigate(PATHS.BLOG_DETAILS, { search: `?id=${blog.id}` })}
             />
           ))}
         </div>
@@ -299,7 +299,7 @@ export function RecentBlogsSection() {
             >
               <BlogCard
                 blog={blog}
-                onRead={() => navigate(PATHS.BLOG_DETAILS, { search: `?id=${blog.id}` })}
+                onClick={() => navigate(PATHS.BLOG_DETAILS, { search: `?id=${blog.id}` })}
               />
             </div>
           ))}
