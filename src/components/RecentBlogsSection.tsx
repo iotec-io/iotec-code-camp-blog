@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowRight, Clock } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Clock, Loader2 } from 'lucide-react'
+import { useMutation, useQuery } from 'convex/react'
+import { api } from '../../convex/_generated/api'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { MOCK_BLOGS, type BlogCategory, type BlogPostPreview } from '@/data/mockBlogs'
+import type { BlogCategory } from '@/data/mockBlogs'
 import { useNavigate } from '@/navigation/RouterContext'
 import { PATHS } from '@/navigation/paths'
 
@@ -14,7 +16,20 @@ function formatStepNumber(num: number): string {
   return String(Math.max(1, num)).padStart(2, '0')
 }
 
-function BlogCard({ blog, onClick }: { blog: BlogPostPreview; onClick: () => void }) {
+interface BlogCardItem {
+  _id: string
+  title: string
+  excerpt: string
+  category: BlogCategory
+  date: string
+  readTime: string
+  isPaid: boolean
+  priceLabel: string
+  imageUrl: string
+  imageAlt: string
+}
+
+function BlogCard({ blog, onRead }: { blog: BlogCardItem; onRead: () => void }) {
   return (
     <Card className="group flex h-full flex-col gap-0 overflow-hidden rounded-xl border-border bg-white p-0 py-0 shadow-2xs transition-shadow hover:shadow-md">
       <div className="aspect-16/10 w-full overflow-hidden bg-muted">
@@ -65,7 +80,7 @@ function BlogCard({ blog, onClick }: { blog: BlogPostPreview; onClick: () => voi
             type="button"
             variant="link"
             size="xs"
-            onClick={onClick}
+            onClick={onRead}
             className="h-auto gap-1.5 p-0 text-xs font-medium text-primary hover:no-underline"
           >
             <span>Read</span>
@@ -83,16 +98,32 @@ function BlogCard({ blog, onClick }: { blog: BlogPostPreview; onClick: () => voi
 export function RecentBlogsSection() {
   const navigate = useNavigate()
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+  const hasRequestedSeedRef = useRef(false)
 
   const [selectedCategory, setSelectedCategory] = useState<FilterCategory>('All')
   const [isSeeAll, setIsSeeAll] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [visibleCards, setVisibleCards] = useState(3)
 
-  const filteredBlogs =
-    selectedCategory === 'All'
-      ? MOCK_BLOGS
-      : MOCK_BLOGS.filter((blog) => blog.category === selectedCategory)
+  const ensureSeeded = useMutation(api.blogs.ensureSeeded)
+  const publishedBlogsQuery = useQuery(
+    api.blogs.listPublished,
+    selectedCategory === 'All' ? {} : { category: selectedCategory },
+  )
+
+  useEffect(() => {
+    if (
+      publishedBlogsQuery !== undefined &&
+      publishedBlogsQuery.length === 0 &&
+      selectedCategory === 'All' &&
+      !hasRequestedSeedRef.current
+    ) {
+      hasRequestedSeedRef.current = true
+      void ensureSeeded()
+    }
+  }, [publishedBlogsQuery, selectedCategory, ensureSeeded])
+
+  const filteredBlogs = publishedBlogsQuery ?? []
 
   const updateVisibleCards = useCallback(() => {
     if (typeof window === 'undefined') return
@@ -112,7 +143,7 @@ export function RecentBlogsSection() {
   }, [updateVisibleCards])
 
   const maxStartIndex = Math.max(0, filteredBlogs.length - visibleCards)
-  const totalSteps = maxStartIndex + 1
+  const totalSteps = Math.max(1, maxStartIndex + 1)
   const clampedIndex = Math.min(currentIndex, maxStartIndex)
 
   const scrollToStep = useCallback(
@@ -274,14 +305,21 @@ export function RecentBlogsSection() {
         </div>
       </div>
 
-      {/* Blogs Display: Horizontal Carousel (when See All is inactive) vs Expanded Grid (when See All is active) */}
-      {isSeeAll ? (
+      {/* Loading State */}
+      {publishedBlogsQuery === undefined ? (
+        <div className="mt-12 flex items-center justify-center gap-2 py-12 text-xs text-muted-foreground">
+          <Loader2 aria-hidden="true" className="size-4 animate-spin text-primary" />
+          <span>Loading published dispatches from Convex&hellip;</span>
+        </div>
+      ) : isSeeAll ? (
         <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredBlogs.map((blog) => (
             <BlogCard
-              key={blog.id}
+              key={blog._id}
               blog={blog}
-              onClick={() => navigate(PATHS.BLOG_DETAILS, { search: `?id=${blog.id}` })}
+              onRead={() =>
+                navigate(PATHS.BLOG_DETAILS, { search: `?id=${blog._id}` })
+              }
             />
           ))}
         </div>
@@ -293,13 +331,15 @@ export function RecentBlogsSection() {
         >
           {filteredBlogs.map((blog) => (
             <div
-              key={blog.id}
+              key={blog._id}
               data-carousel-item
               className="w-full shrink-0 snap-start md:w-[calc((100%-1.5rem)/2)] lg:w-[calc((100%-3rem)/3)]"
             >
               <BlogCard
                 blog={blog}
-                onClick={() => navigate(PATHS.BLOG_DETAILS, { search: `?id=${blog.id}` })}
+                onRead={() =>
+                  navigate(PATHS.BLOG_DETAILS, { search: `?id=${blog._id}` })
+                }
               />
             </div>
           ))}
@@ -308,4 +348,3 @@ export function RecentBlogsSection() {
     </section>
   )
 }
-

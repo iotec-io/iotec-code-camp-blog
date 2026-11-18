@@ -1,10 +1,26 @@
 import { Clock, Sparkles } from 'lucide-react'
 import authorAvatarImg from '@/assets/portrait.webp'
 import { Card } from '@/components/ui/card'
-import type { BlogPost } from '@/data/mockBlogs'
+
+export interface BlogArticleHeaderData {
+  title: string
+  subtitle: string
+  badgeLabel: string
+  date: string
+  readTime: string
+  isPaid: boolean
+  status?: 'draft' | 'published'
+  imageUrl: string
+  imageAlt: string
+  imageCaption: string
+  author: {
+    name: string
+    role: string
+  }
+}
 
 interface BlogArticleHeaderProps {
-  blog: BlogPost
+  blog: BlogArticleHeaderData
   isUnlocked: boolean
 }
 
@@ -14,11 +30,23 @@ export function BlogArticleHeader({ blog, isUnlocked }: BlogArticleHeaderProps) 
       {/* Top Meta Row: Badges & Read Time / Date */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
+          {blog.status === 'draft' && (
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-100/80 px-2.5 py-1 text-[10px] font-semibold tracking-[0.08em] text-amber-900 uppercase">
+              <span
+                aria-hidden="true"
+                className="size-1.5 rounded-full bg-amber-600"
+              />
+              <span>Draft Preview</span>
+            </span>
+          )}
+
           {blog.isPaid ? (
             <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-200/80 bg-amber-50/90 px-2.5 py-1 text-[10px] font-semibold tracking-[0.08em] text-amber-800 uppercase">
               <Sparkles aria-hidden="true" className="size-3 text-amber-600" />
               <span>
-                {isUnlocked ? 'Subscriber Exclusive · Unlocked' : 'Subscriber Exclusive'}
+                {isUnlocked
+                  ? 'Subscriber Exclusive · Unlocked'
+                  : 'Subscriber Exclusive'}
               </span>
             </span>
           ) : (
@@ -90,4 +118,3 @@ export function BlogArticleHeader({ blog, isUnlocked }: BlogArticleHeaderProps) 
     </header>
   )
 }
-

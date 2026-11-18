@@ -65,7 +65,7 @@ export function Toaster() {
     <div
       aria-live="polite"
       aria-atomic="false"
-      className="pointer-events-none fixed right-4 bottom-4 z-50 flex w-full max-w-sm flex-col gap-2.5 sm:right-6 sm:bottom-6"
+      className="pointer-events-none fixed top-4 right-4 z-50 flex w-full max-w-sm flex-col gap-2.5 sm:top-6 sm:right-6"
     >
       {items.map((item) => {
         const isError = item.variant === 'error'

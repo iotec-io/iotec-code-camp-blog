@@ -128,7 +128,8 @@ export interface NavLinkProps extends Omit<LinkProps, 'className' | 'children'> 
 
 export function NavLink({ to, className, children, ...rest }: NavLinkProps) {
   const { pathname } = useLocation()
-  const isActive = pathname === to
+  const isActive =
+    pathname === to || (to !== PATHS.LANDING && pathname.startsWith(`${to}/`))
 
   const resolvedClassName =
     typeof className === 'function' ? className({ isActive }) : className

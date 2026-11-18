@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import {
   AlertCircle,
   AtSign,
@@ -10,6 +10,11 @@ import {
   Sparkles,
   X,
 } from 'lucide-react'
+import {
+  FormRadioCardGroup,
+  FormTextInput,
+  type RadioCardOption,
+} from '@/components/form'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { toast } from '@/components/ui/toaster'
@@ -24,20 +29,34 @@ interface BlogPaywallDialogProps {
   onUnlock: () => void
 }
 
-export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogProps) {
-  const emailInputId = useId()
-  const phoneInputId = useId()
-  const emailHintId = useId()
-  const phoneHintId = useId()
+const MOBILE_NETWORK_OPTIONS: readonly RadioCardOption<MobileNetwork>[] = [
+  {
+    value: 'mtn',
+    label: 'MTN MoMo',
+    icon: <span aria-hidden="true" className="size-2.5 rounded-full bg-amber-400" />,
+    activeClassName:
+      'border-primary bg-primary/5 font-semibold text-foreground shadow-2xs',
+  },
+  {
+    value: 'airtel',
+    label: 'Airtel Money',
+    icon: <span aria-hidden="true" className="size-2.5 rounded-full bg-red-500" />,
+    activeClassName:
+      'border-primary bg-primary/5 font-semibold text-foreground shadow-2xs',
+  },
+]
 
+export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogProps) {
   const [activeTab, setActiveTab] = useState<AccessTab>('new-access')
   const [selectedNetwork, setSelectedNetwork] = useState<MobileNetwork>('mtn')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [emailError, setEmailError] = useState<string | undefined>(undefined)
+  const [phoneError, setPhoneError] = useState<string | undefined>(undefined)
 
   const [sessionStatus, setSessionStatus] = useState<PaywallSessionStatus>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [mockOutcome, setMockOutcome] = useState<MockOutcomeMode>('approve')
+  const [mockOutcome] = useState<MockOutcomeMode>('approve')
 
   const ussdTimerRef = useRef<number | null>(null)
   const unlockTimerRef = useRef<number | null>(null)
@@ -62,6 +81,8 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
   const completeWithSuccess = () => {
     clearTimers()
     setErrorMessage(null)
+    setEmailError(undefined)
+    setPhoneError(undefined)
     setSessionStatus('success')
 
     toast.success(
@@ -86,6 +107,13 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
     toast.error('USSD Authorization Failed', reason)
   }
 
+  const handleTabSwitch = (nextTab: AccessTab) => {
+    setActiveTab(nextTab)
+    setEmailError(undefined)
+    setPhoneError(undefined)
+    setErrorMessage(null)
+  }
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (sessionStatus === 'processing' || sessionStatus === 'success') return
@@ -93,16 +121,24 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
     const trimmedEmail = email.trim()
     const trimmedPhone = phone.replace(/\D/g, '')
 
+    let hasFieldError = false
     if (!trimmedEmail || !trimmedEmail.includes('@')) {
-      completeWithFailure(
-        'Please enter a valid email address so we can issue and restore your reading pass.',
-      )
-      return
+      setEmailError('Please enter a valid email address.')
+      hasFieldError = true
+    } else {
+      setEmailError(undefined)
     }
 
     if (activeTab === 'new-access' && trimmedPhone.length < 7) {
+      setPhoneError('Enter a valid Mobile Money number (e.g., 77 123 4567).')
+      hasFieldError = true
+    } else {
+      setPhoneError(undefined)
+    }
+
+    if (hasFieldError) {
       completeWithFailure(
-        'Please enter a valid Mobile Money phone number (e.g., 77 123 4567) to trigger the handset USSD prompt.',
+        'Please resolve the highlighted form errors to proceed with authorization.',
       )
       return
     }
@@ -280,7 +316,7 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
                 type="button"
                 role="tab"
                 aria-selected={activeTab === 'new-access'}
-                onClick={() => setActiveTab('new-access')}
+                onClick={() => handleTabSwitch('new-access')}
                 className={`cursor-pointer rounded-md py-2 text-xs transition-all ${
                   activeTab === 'new-access'
                     ? 'bg-white font-semibold text-primary shadow-2xs'
@@ -294,7 +330,7 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
                 type="button"
                 role="tab"
                 aria-selected={activeTab === 'restore-access'}
-                onClick={() => setActiveTab('restore-access')}
+                onClick={() => handleTabSwitch('restore-access')}
                 className={`cursor-pointer rounded-md py-2 text-xs transition-all ${
                   activeTab === 'restore-access'
                     ? 'bg-white font-semibold text-primary shadow-2xs'
@@ -306,165 +342,98 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
             </div>
 
             <form onSubmit={handleSubmit} className="mt-5" noValidate>
-              {activeTab === 'new-access' && (
-                <div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-semibold tracking-[0.08em] text-foreground/80 uppercase">
-                      Select Mobile Money Network
-                    </span>
-                  </div>
-
-                  <div
-                    role="radiogroup"
-                    aria-label="Mobile Money network"
-                    className="mt-2 grid grid-cols-2 gap-2.5"
-                  >
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={selectedNetwork === 'mtn'}
-                      onClick={() => setSelectedNetwork('mtn')}
-                      className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border py-3 text-xs transition-all ${
-                        selectedNetwork === 'mtn'
-                          ? 'border-primary bg-primary/5 font-semibold text-foreground shadow-2xs'
-                          : 'border-border bg-card/60 font-medium text-muted-foreground hover:bg-card'
-                      }`}
-                    >
-                      <span
-                        aria-hidden="true"
-                        className="size-2.5 rounded-full bg-amber-400"
-                      />
-                      <span>MTN MoMo</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      role="radio"
-                      aria-checked={selectedNetwork === 'airtel'}
-                      onClick={() => setSelectedNetwork('airtel')}
-                      className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border py-3 text-xs transition-all ${
-                        selectedNetwork === 'airtel'
-                          ? 'border-primary bg-primary/5 font-semibold text-foreground shadow-2xs'
-                          : 'border-border bg-card/60 font-medium text-muted-foreground hover:bg-card'
-                      }`}
-                    >
-                      <span
-                        aria-hidden="true"
-                        className="size-2.5 rounded-full bg-red-500"
-                      />
-                      <span>Airtel Money</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Email Field */}
-              <div className="mt-4">
-                <label
-                  htmlFor={emailInputId}
-                  className="block text-[11px] font-semibold text-foreground"
-                >
-                  Your Email Address
-                </label>
-                <div className="mt-1.5 flex h-9 items-center gap-2 rounded-lg border border-border bg-card/70 px-3 focus-within:border-primary focus-within:bg-white">
-                  <AtSign
-                    aria-hidden="true"
-                    className="size-3.5 shrink-0 text-muted-foreground"
+              {/* Form 1: New Access (Mobile Money) vs Form 2: Returning Reader (Restore) */}
+              {activeTab === 'new-access' ? (
+                <>
+                  <FormRadioCardGroup
+                    label="Select Mobile Money Network"
+                    layout="stacked"
+                    options={MOBILE_NETWORK_OPTIONS}
+                    value={selectedNetwork}
+                    onChange={setSelectedNetwork}
                   />
-                  <input
-                    id={emailInputId}
+
+                  <FormTextInput
+                    label="Your Email Address"
+                    required
                     type="email"
                     inputMode="email"
                     autoComplete="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      if (emailError) setEmailError(undefined)
+                    }}
                     placeholder="reader@domain.com"
-                    aria-describedby={emailHintId}
-                    className="w-full bg-transparent text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
+                    leadingIcon={
+                      <AtSign aria-hidden="true" className="size-3.5" />
+                    }
+                    hint="Used to securely associate and restore your lifetime reading pass."
+                    error={emailError}
+                    containerClassName="mt-4"
+                    inputWrapperClassName="h-9"
+                    className="text-xs"
                   />
-                </div>
-                <p id={emailHintId} className="mt-1 text-[10px] text-muted-foreground">
-                  Used to securely associate and restore your lifetime reading pass.
-                </p>
-              </div>
 
-              {/* Phone Number Field (Only for New Access) */}
-              {activeTab === 'new-access' && (
-                <div className="mt-4">
-                  <label
-                    htmlFor={phoneInputId}
-                    className="block text-[11px] font-semibold text-foreground"
-                  >
-                    Mobile Money Phone Number
-                  </label>
-                  <div className="mt-1.5 flex h-9 items-center overflow-hidden rounded-lg border border-border bg-card/70 focus-within:border-primary focus-within:bg-white">
-                    <div className="flex h-full shrink-0 items-center gap-1.5 border-r border-border px-3 text-xs font-semibold text-foreground">
-                      <span>+256 (UG)</span>
-                      <ChevronDown
-                        aria-hidden="true"
-                        className="size-3 text-muted-foreground"
-                      />
-                    </div>
-                    <div className="flex flex-1 items-center gap-2 px-3">
-                      <Smartphone
-                        aria-hidden="true"
-                        className="size-3.5 shrink-0 text-muted-foreground"
-                      />
-                      <input
-                        id={phoneInputId}
-                        type="tel"
-                        inputMode="tel"
-                        autoComplete="tel-national"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="77 123 4567"
-                        aria-describedby={phoneHintId}
-                        className="w-full bg-transparent text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                  <p id={phoneHintId} className="mt-1 text-[10px] text-muted-foreground">
-                    Direct authorization; standard network tariffs apply.
-                  </p>
-                </div>
+                  <FormTextInput
+                    label="Mobile Money Phone Number"
+                    required
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel-national"
+                    value={phone}
+                    onChange={(e) => {
+                      setPhone(e.target.value)
+                      if (phoneError) setPhoneError(undefined)
+                    }}
+                    placeholder="77 123 4567"
+                    startAddon={
+                      <>
+                        <span>+256 (UG)</span>
+                        <ChevronDown
+                          aria-hidden="true"
+                          className="size-3 text-muted-foreground"
+                        />
+                      </>
+                    }
+                    leadingIcon={
+                      <Smartphone aria-hidden="true" className="size-3.5" />
+                    }
+                    hint="Direct authorization; standard network tariffs apply."
+                    error={phoneError}
+                    containerClassName="mt-4"
+                    inputWrapperClassName="h-9"
+                    className="text-xs"
+                  />
+                </>
+              ) : (
+                <FormTextInput
+                  label="Registered Reader Email Address"
+                  required
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    if (emailError) setEmailError(undefined)
+                  }}
+                  placeholder="reader@domain.com"
+                  leadingIcon={
+                    <AtSign aria-hidden="true" className="size-3.5" />
+                  }
+                  hint="Enter the email address used when you originally unlocked this dispatch."
+                  error={emailError}
+                  inputWrapperClassName="h-9"
+                  className="text-xs"
+                />
               )}
-
-              {/* Mock USSD Outcome Toggle for Testing */}
-              {/*<div className="mt-4 flex items-center justify-between rounded-lg border border-dashed border-border bg-card/40 px-3 py-2 text-[11px]">*/}
-              {/*  <span className="text-muted-foreground">*/}
-              {/*    Simulated USSD Result:*/}
-              {/*  </span>*/}
-              {/*  <div className="inline-flex items-center gap-1">*/}
-              {/*    <button*/}
-              {/*      type="button"*/}
-              {/*      onClick={() => setMockOutcome('approve')}*/}
-              {/*      className={`cursor-pointer rounded px-2 py-0.5 text-[10px] font-semibold transition-colors ${*/}
-              {/*        mockOutcome === 'approve'*/}
-              {/*          ? 'bg-emerald-100 text-emerald-800'*/}
-              {/*          : 'text-muted-foreground hover:text-foreground'*/}
-              {/*      }`}*/}
-              {/*    >*/}
-              {/*      Succeed*/}
-              {/*    </button>*/}
-              {/*    <button*/}
-              {/*      type="button"*/}
-              {/*      onClick={() => setMockOutcome('fail')}*/}
-              {/*      className={`cursor-pointer rounded px-2 py-0.5 text-[10px] font-semibold transition-colors ${*/}
-              {/*        mockOutcome === 'fail'*/}
-              {/*          ? 'bg-red-100 text-red-800'*/}
-              {/*          : 'text-muted-foreground hover:text-foreground'*/}
-              {/*      }`}*/}
-              {/*    >*/}
-              {/*      Fail*/}
-              {/*    </button>*/}
-              {/*  </div>*/}
-              {/*</div>*/}
 
               {/* Submit CTA */}
               <Button
                 type="submit"
                 size="lg"
-                className="mt-4 h-10 w-full gap-2 bg-primary text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
+                className="mt-5 h-10 w-full gap-2 bg-primary text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
               >
                 <Lock aria-hidden="true" className="size-3.5" />
                 <span>

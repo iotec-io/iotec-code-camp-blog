@@ -4,6 +4,7 @@ import { AdminLayout } from '../layouts/AdminLayout'
 import { LandingPage } from '../pages/LandingPage'
 import { BlogDetailsPage } from '../pages/BlogDetailsPage'
 import { AdminBlogsPage } from '../pages/admin/AdminBlogsPage'
+import { CreateBlogPage } from '../pages/admin/CreateBlogPage'
 import { AdminTransactionsPage } from '../pages/admin/AdminTransactionsPage'
 import { AdminUsersPage } from '../pages/admin/AdminUsersPage'
 import { useLocation, useNavigate } from './RouterContext'
@@ -45,6 +46,12 @@ export const ROUTES: readonly RouteConfig[] = [
     component: AdminBlogsPage,
   },
   {
+    path: PATHS.ADMIN_CREATE_BLOG,
+    title: 'Create Blog | Admin Dashboard — The Tech Report',
+    layout: 'admin',
+    component: CreateBlogPage,
+  },
+  {
     path: PATHS.ADMIN_TRANSACTIONS,
     title: 'Transactions | Admin Dashboard — The Tech Report',
     layout: 'admin',
@@ -52,7 +59,7 @@ export const ROUTES: readonly RouteConfig[] = [
   },
   {
     path: PATHS.ADMIN_USERS,
-    title: 'Users | Admin Dashboard — The Tech Report',
+    title: 'Subscribers | Admin Dashboard — The Tech Report',
     layout: 'admin',
     component: AdminUsersPage,
   },
@@ -94,4 +101,3 @@ export function AppRouter() {
     </PublicLayout>
   )
 }
-
