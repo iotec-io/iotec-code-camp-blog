@@ -220,6 +220,113 @@ export const listAllForAdmin = query({
   },
 });
 
+/**
+ * Reactive server-side search, multi/single filter, and paginated query for the Admin Blogs table.
+ */
+export const listAdminTable = query({
+  args: {
+    searchQuery: v.optional(v.string()),
+    categories: v.optional(v.array(blogCategoryValidator)),
+    subscriptionModes: v.optional(v.array(subscriptionModeValidator)),
+    statuses: v.optional(v.array(blogStatusValidator)),
+    page: v.optional(v.number()),
+    pageSize: v.optional(v.number()),
+  },
+  returns: v.object({
+    items: v.array(publicBlogItemValidator),
+    totalFiltered: v.number(),
+    page: v.number(),
+    pageSize: v.number(),
+    totalPages: v.number(),
+    counts: v.object({
+      published: v.number(),
+      draft: v.number(),
+      archived: v.number(),
+      total: v.number(),
+    }),
+  }),
+  handler: async (ctx, args) => {
+    const allDocs = await ctx.db.query("blogs").order("desc").take(200);
+
+    let publishedCount = 0;
+    let draftCount = 0;
+    let archivedCount = 0;
+
+    for (const doc of allDocs) {
+      if (doc.status === "published") publishedCount += 1;
+      else if (doc.status === "draft") draftCount += 1;
+      else if (doc.status === "archived") archivedCount += 1;
+    }
+
+    const normalizedSearch = args.searchQuery?.trim().toLowerCase() ?? "";
+    const categorySet =
+      args.categories && args.categories.length > 0
+        ? new Set(args.categories)
+        : null;
+    const subscriptionSet =
+      args.subscriptionModes && args.subscriptionModes.length > 0
+        ? new Set(args.subscriptionModes)
+        : null;
+    const statusSet =
+      args.statuses && args.statuses.length > 0 ? new Set(args.statuses) : null;
+
+    const filteredDocs = allDocs.filter((doc) => {
+      if (categorySet && !categorySet.has(doc.category)) {
+        return false;
+      }
+      if (subscriptionSet && !subscriptionSet.has(doc.subscriptionMode)) {
+        return false;
+      }
+      if (statusSet && !statusSet.has(doc.status)) {
+        return false;
+      }
+      if (normalizedSearch) {
+        const inTitle = doc.title.toLowerCase().includes(normalizedSearch);
+        const inSubtitle = doc.subtitle
+          .toLowerCase()
+          .includes(normalizedSearch);
+        const inCategory = doc.category
+          .toLowerCase()
+          .includes(normalizedSearch);
+        const inTags = (doc.tags ?? []).some((tag) =>
+          tag.toLowerCase().includes(normalizedSearch),
+        );
+        if (!inTitle && !inSubtitle && !inCategory && !inTags) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    const pageSize = Math.max(1, Math.min(args.pageSize ?? 7, 50));
+    const totalFiltered = filteredDocs.length;
+    const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+    const requestedPage = Math.max(1, args.page ?? 1);
+    const currentPage = Math.min(requestedPage, totalPages);
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const pageDocs = filteredDocs.slice(startIndex, startIndex + pageSize);
+
+    const items = await Promise.all(
+      pageDocs.map((doc) => toPublicBlogItem(ctx, doc)),
+    );
+
+    return {
+      items,
+      totalFiltered,
+      page: currentPage,
+      pageSize,
+      totalPages,
+      counts: {
+        published: publishedCount,
+        draft: draftCount,
+        archived: archivedCount,
+        total: allDocs.length,
+      },
+    };
+  },
+});
+
 export const getByIdOrSlug = query({
   args: {
     identifier: v.optional(v.string()),
@@ -490,7 +597,7 @@ const INITIAL_SEED_BLOGS = [
       dimensions: "2400 × 1350",
     },
     author: DEFAULT_AUTHOR,
-    updatedAt: Date.parse("2026-11-14T10:00:00Z"),
+    updatedAt: Date.parse("2026-10-14T10:00:00Z"),
     previewContentHtml: `
       <p class="drop-cap">Most digital architectures built today are designed with an <strong>expiration timestamp</strong> tacitly stamped into their foundations. They rely on cloud infrastructures that deprecate dependencies bi-annually, <u>telemetry layers that extract user sovereignty</u>, and venture models demanding endless churn over <span style="color: #1e5ae3; font-weight: 500;">quiet persistence</span>. When we open a book printed in Venice in 1502, the technology of movable type and linen rag paper remains immediately readable, self-contained, and impervious to platform decay.</p>
       <p>In contrast, a web page or digital tool authored barely a decade ago frequently fails to execute. Third-party script CDNs return <code>HTTP 404</code>, stylesheet frameworks abandon backwards compatibility, and proprietary database schemas trap authorial archives behind vanished corporate logins. To build something destined to stand for fifty years requires <u>rejecting the premise that software must continuously mutate</u> to maintain value.</p>
@@ -571,7 +678,7 @@ export function verifyEnvelopeIntegrity(
       dimensions: "2400 × 1350",
     },
     author: DEFAULT_AUTHOR,
-    updatedAt: Date.parse("2026-10-24T10:00:00Z"),
+    updatedAt: Date.parse("2026-09-28T10:00:00Z"),
     previewContentHtml: `
       <p class="drop-cap">Modern operating systems treat human attention as an <strong>infinite, unpriced commons</strong>. Notifications interrupt deep synthesis, status badges pulse in peripheral vision, and background daemons compete for cycles without consent. <u>Quiet computing</u> begins by inverting this hierarchy: the machine waits silently until summoned.</p>
       <p>In architectural acoustics, a room is evaluated by its noise floor and reverberation decay. Software environments require an equivalent metric for <span style="color: #1e5ae3; font-weight: 500;">cognitive reverberation</span>—the time required for an engineer’s mind to regain focus after an uninvited modal dialog appears.</p>
@@ -628,7 +735,7 @@ export function verifyEnvelopeIntegrity(
       dimensions: "2400 × 1350",
     },
     author: DEFAULT_AUTHOR,
-    updatedAt: Date.parse("2026-11-02T10:00:00Z"),
+    updatedAt: Date.parse("2026-08-19T10:00:00Z"),
     previewContentHtml: `
       <p class="drop-cap">When punchcutters in the sixteenth century carved steel matrices by hand, they did not merely scale a single vector outline linearly from <code>8pt</code> to <code>48pt</code>.</p>
     `,
@@ -681,7 +788,7 @@ export function verifyEnvelopeIntegrity(
       dimensions: "2400 × 1350",
     },
     author: DEFAULT_AUTHOR,
-    updatedAt: Date.parse("2026-11-14T08:00:00Z"),
+    updatedAt: Date.parse("2026-07-04T08:00:00Z"),
     previewContentHtml: `
       <p class="drop-cap">When engineers design distributed systems solely inside gigabit fiber campuses, they unconsciously treat network partitions as <strong>rare anomalies</strong> rather than the default operating state. Across regional corridors in East Africa, intermittent link saturation is a daily physical reality that exposes fragile consensus assumptions within minutes.</p>
       <blockquote>
@@ -736,7 +843,7 @@ export function verifyEnvelopeIntegrity(
       dimensions: "2400 × 1350",
     },
     author: DEFAULT_AUTHOR,
-    updatedAt: Date.parse("2026-11-21T10:00:00Z"),
+    updatedAt: Date.parse("2026-06-22T10:00:00Z"),
     previewContentHtml: `
       <p class="drop-cap">Cascading failures in distributed systems almost always trace back to a single architectural sin: <strong>unbounded synchronous waiting</strong> across fault domains.</p>
     `,
@@ -781,7 +888,7 @@ export function verifyEnvelopeIntegrity(
       dimensions: "2560 × 1440",
     },
     author: DEFAULT_AUTHOR,
-    updatedAt: Date.parse("2026-11-29T10:00:00Z"),
+    updatedAt: Date.parse("2026-05-30T10:00:00Z"),
     previewContentHtml: `
       <p class="drop-cap">In safety-critical and long-lived embedded systems, general-purpose heap allocation (<code>malloc</code> / <code>free</code>) after initialization is treated as a <strong>latent defect</strong>. Over months of continuous operation, variable-sized allocations fragment physical RAM until a routine request fails unpredictably.</p>
       <blockquote>
@@ -811,6 +918,76 @@ export function verifyEnvelopeIntegrity(
     this.offset = 0;
   }
 }</code></pre>
+    `,
+  },
+  {
+    slug: "civic-distributed-ledgers-archival",
+    title: "Civic Distributed Ledgers: Archival Protocols",
+    subtitle:
+      "Immutable public registries designed for municipal land records and offline regional verification.",
+    excerpt:
+      "Immutable public registries designed for municipal land records and offline regional verification.",
+    category: "Architecture" as const,
+    tags: ["INFRASTRUCTURE", "ARCHIVAL"],
+    readTime: "11 min read",
+    wordCount: 360,
+    status: "archived" as const,
+    subscriptionMode: "paid" as const,
+    price: {
+      amount: 5000,
+      currency: "UGX",
+    },
+    coverImageUrl:
+      "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=85",
+    coverImageData: {
+      alt: "Clean geometric facade of a modern architectural structure",
+      caption: "Municipal ledger archive study — Kampala, 2026",
+      fileName: "civic_distributed_ledgers.webp",
+      fileSize: 1920000,
+      dimensions: "2400 × 1350",
+    },
+    author: DEFAULT_AUTHOR,
+    updatedAt: Date.parse("2026-05-18T10:00:00Z"),
+    previewContentHtml: `
+      <p class="drop-cap">Civic registries outlast administrations only when their storage format is <strong>cryptographically self-verifying</strong> and free of vendor lock-in.</p>
+    `,
+    fullContentHtml: `
+      <p class="drop-cap">Civic registries outlast administrations only when their storage format is <strong>cryptographically self-verifying</strong> and free of vendor lock-in.</p>
+    `,
+  },
+  {
+    slug: "thermal-budgeting-compact-runtimes",
+    title: "Thermal Budgeting in Compact Runtimes",
+    subtitle:
+      "Passive cooling envelopes and instruction-level power scheduling for fanless field servers in equatorial climates.",
+    excerpt:
+      "Passive cooling envelopes and instruction-level power scheduling for fanless field servers in equatorial climates.",
+    category: "Technology" as const,
+    tags: ["COMPUTING", "HARDWARE"],
+    readTime: "7 min read",
+    wordCount: 230,
+    status: "draft" as const,
+    subscriptionMode: "free" as const,
+    price: {
+      amount: 0,
+      currency: "UGX",
+    },
+    coverImageUrl:
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=85",
+    coverImageData: {
+      alt: "Passive heatsink fins on a compact field server",
+      caption: "Equatorial thermal test bench — Field Report, 2026",
+      fileName: "thermal_budgeting_compact.webp",
+      fileSize: 1640000,
+      dimensions: "2400 × 1350",
+    },
+    author: DEFAULT_AUTHOR,
+    updatedAt: Date.parse("2026-05-11T10:00:00Z"),
+    previewContentHtml: `
+      <p class="drop-cap">Moving air with mechanical fans introduces dust ingress and bearing failure into remote telecom huts. <strong>Passive thermal budgeting</strong> treats heat dissipation as a first-class scheduler constraint.</p>
+    `,
+    fullContentHtml: `
+      <p class="drop-cap">Moving air with mechanical fans introduces dust ingress and bearing failure into remote telecom huts. <strong>Passive thermal budgeting</strong> treats heat dissipation as a first-class scheduler constraint.</p>
     `,
   },
 ];

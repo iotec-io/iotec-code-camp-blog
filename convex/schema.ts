@@ -9,6 +9,7 @@ export const blogCategoryValidator = v.union(
 export const blogStatusValidator = v.union(
   v.literal("draft"),
   v.literal("published"),
+  v.literal("archived"),
 );
 
 export const subscriptionModeValidator = v.union(

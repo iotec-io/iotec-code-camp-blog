@@ -6,7 +6,6 @@ import { useMutation, useQuery } from 'convex/react'
 import {
   Clock,
   Eye,
-  Loader2,
   Lock,
   Radio,
   Save,
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
+import { AdminTitle } from '@/components/admin'
 import {
   FormImageUploadInput,
   FormRadioCardGroup,
@@ -26,7 +26,6 @@ import {
   type RadioCardOption,
   type SelectOption,
 } from '@/components/form'
-import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { toast } from '@/components/ui/toaster'
 import { useLocation, useNavigate } from '@/navigation/RouterContext'
@@ -438,13 +437,11 @@ export function CreateBlogPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col">
-      {/* Top Page Header & Action Bar */}
-      <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-serif text-3xl font-normal tracking-tight text-foreground sm:text-4xl">
-            Create Blog
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2.5">
+      {/* Reusable AdminTitle with Title, Subtitle, Buttons Array & Bottom Divider */}
+      <AdminTitle
+        title="Create Blog"
+        subtitle={
+          <div className="flex flex-wrap items-center gap-2.5">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold tracking-wider text-amber-800 uppercase">
               <span
                 aria-hidden="true"
@@ -456,54 +453,41 @@ export function CreateBlogPage() {
               Unpublished Working Copy
             </span>
           </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isSavingDraft || isPreviewing || isPublishing}
-            onClick={handleSaveAsDraft}
-            className="h-9 gap-2 bg-white px-3.5 text-xs font-medium shadow-2xs"
-          >
-            {isSavingDraft ? (
-              <Loader2 aria-hidden="true" className="size-3.5 animate-spin" />
-            ) : (
+        }
+        buttons={[
+          {
+            id: 'save-draft',
+            label: 'Save as Draft',
+            variant: 'outline',
+            icon: (
               <Save aria-hidden="true" className="size-3.5 text-muted-foreground" />
-            )}
-            <span>Save as Draft</span>
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isSavingDraft || isPreviewing || isPublishing}
-            onClick={handlePreviewDraft}
-            className="h-9 gap-2 bg-white px-3.5 text-xs font-medium shadow-2xs"
-          >
-            {isPreviewing ? (
-              <Loader2 aria-hidden="true" className="size-3.5 animate-spin" />
-            ) : (
+            ),
+            isLoading: isSavingDraft,
+            disabled: isSavingDraft || isPreviewing || isPublishing,
+            onClick: handleSaveAsDraft,
+          },
+          {
+            id: 'preview',
+            label: 'Preview',
+            variant: 'outline',
+            icon: (
               <Eye aria-hidden="true" className="size-3.5 text-muted-foreground" />
-            )}
-            <span>Preview</span>
-          </Button>
-
-          <Button
-            type="button"
-            disabled={isSavingDraft || isPreviewing || isPublishing}
-            onClick={handlePublishArticle}
-            className="h-9 gap-2 bg-primary px-4 text-xs font-semibold text-primary-foreground shadow-xs hover:bg-primary/90"
-          >
-            {isPublishing ? (
-              <Loader2 aria-hidden="true" className="size-3.5 animate-spin" />
-            ) : (
-              <Radio aria-hidden="true" className="size-3.5" />
-            )}
-            <span>Publish Article</span>
-          </Button>
-        </div>
-      </div>
+            ),
+            isLoading: isPreviewing,
+            disabled: isSavingDraft || isPreviewing || isPublishing,
+            onClick: handlePreviewDraft,
+          },
+          {
+            id: 'publish',
+            label: 'Publish Article',
+            variant: 'default',
+            icon: <Radio aria-hidden="true" className="size-3.5" />,
+            isLoading: isPublishing,
+            disabled: isSavingDraft || isPreviewing || isPublishing,
+            onClick: handlePublishArticle,
+          },
+        ]}
+      />
 
       {/* Main Two-Column Grid Layout */}
       <div className="mt-7 grid grid-cols-1 items-start gap-7 lg:grid-cols-12">

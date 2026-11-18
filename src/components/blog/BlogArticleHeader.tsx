@@ -9,7 +9,7 @@ export interface BlogArticleHeaderData {
   date: string
   readTime: string
   isPaid: boolean
-  status?: 'draft' | 'published'
+  status?: 'draft' | 'published' | 'archived'
   imageUrl: string
   imageAlt: string
   imageCaption: string

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowLeft, FileEdit, Loader2, Lock } from 'lucide-react'
+import { ArrowLeft, FileEdit, Loader2 } from 'lucide-react'
 import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { BlogArticleHeader } from '@/components/blog/BlogArticleHeader'
@@ -26,24 +26,24 @@ export function BlogDetailsPage() {
     requestedId && unlockedBlogIds[requestedId],
   )
 
-  const blogFromConvex = useQuery(api.blogs.getByIdOrSlug, {
+  const blog = useQuery(api.blogs.getByIdOrSlug, {
     identifier: requestedId ?? undefined,
     isUnlocked: isReaderUnlocked,
   })
 
-  if (blogFromConvex === undefined) {
+  if (blog === undefined) {
     return (
       <div className="mx-auto flex w-full max-w-2xl flex-1 items-center justify-center py-24 text-xs text-muted-foreground">
         <Loader2 aria-hidden="true" className="mr-2 size-4 animate-spin text-primary" />
-        <span>Loading dispatch from Convex&hellip;</span>
+        <span>Loading blog&hellip;</span>
       </div>
     )
   }
 
-  if (blogFromConvex === null) {
+  if (blog === null) {
     return (
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-start justify-center py-24">
-        <p className="font-serif text-xl text-foreground">Dispatch not found.</p>
+        <p className="font-serif text-xl text-foreground">Blog not found.</p>
         <Button
           type="button"
           variant="outline"
@@ -57,24 +57,24 @@ export function BlogDetailsPage() {
     )
   }
 
-  const isUnlocked = !blogFromConvex.isPaid || isReaderUnlocked
-  const isLocked = blogFromConvex.isPaid && !isUnlocked
+  const isUnlocked = !blog.isPaid || isReaderUnlocked
+  const isLocked = blog.isPaid && !isUnlocked
 
   const handleUnlockCurrentBlog = () => {
     setUnlockedBlogIds((prev) => ({
       ...prev,
-      [blogFromConvex._id]: true,
+      [blog._id]: true,
       ...(requestedId ? { [requestedId]: true } : {}),
     }))
   }
 
-  const handleRelockCurrentBlog = () => {
-    setUnlockedBlogIds((prev) => ({
-      ...prev,
-      [blogFromConvex._id]: false,
-      ...(requestedId ? { [requestedId]: false } : {}),
-    }))
-  }
+  // const handleRelockCurrentBlog = () => {
+  //   setUnlockedBlogIds((prev) => ({
+  //     ...prev,
+  //     [blog._id]: false,
+  //     ...(requestedId ? { [requestedId]: false } : {}),
+  //   }))
+  // }
 
   return (
     <article className="mx-auto flex w-full max-w-2xl flex-1 flex-col py-8 sm:py-12">
@@ -101,7 +101,7 @@ export function BlogDetailsPage() {
               size="sm"
               onClick={() =>
                 navigate(PATHS.ADMIN_CREATE_BLOG, {
-                  search: `?editId=${blogFromConvex._id}`,
+                  search: `?editId=${blog._id}`,
                 })
               }
               className="gap-1.5 bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-2xs"
@@ -112,30 +112,30 @@ export function BlogDetailsPage() {
           )}
         </div>
 
-        {blogFromConvex.isPaid && isUnlocked && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            onClick={handleRelockCurrentBlog}
-            className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <Lock aria-hidden="true" className="size-3" />
-            <span>Lock Paywall Preview</span>
-          </Button>
-        )}
+        {/*{blog.isPaid && isUnlocked && (*/}
+        {/*  <Button*/}
+        {/*    type="button"*/}
+        {/*    variant="ghost"*/}
+        {/*    size="xs"*/}
+        {/*    onClick={handleRelockCurrentBlog}*/}
+        {/*    className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"*/}
+        {/*  >*/}
+        {/*    <Lock aria-hidden="true" className="size-3" />*/}
+        {/*    <span>Lock Paywall Preview</span>*/}
+        {/*  </Button>*/}
+        {/*)}*/}
       </div>
 
       {/* 1. Article Header (Badges, Read Time, Date, Title, Subtitle, Featured Image, Author) */}
-      <BlogArticleHeader blog={blogFromConvex} isUnlocked={isUnlocked} />
+      <BlogArticleHeader blog={blog} isUnlocked={isUnlocked} />
 
       {/* 2. Rich-Text Article Content (Strictly preview-only HTML from Convex when locked) */}
-      <BlogContent html={blogFromConvex.authorizedHtml} isLocked={isLocked} />
+      <BlogContent html={blog.authorizedHtml} isLocked={isLocked} />
 
       {/* 3. Paywall Dialog (Displayed when blog is paid and not unlocked) */}
       {isLocked && (
         <BlogPaywallDialog
-          priceAmount={blogFromConvex.priceAmount}
+          priceAmount={blog.priceAmount}
           onUnlock={handleUnlockCurrentBlog}
         />
       )}
