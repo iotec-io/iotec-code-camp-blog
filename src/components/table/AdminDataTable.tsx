@@ -265,8 +265,20 @@ export function AdminDataTable<TRow>({
   const [searchQuery, setSearchQuery] = useState(
     DEFAULT_ADMIN_TABLE_QUERY.searchQuery,
   )
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(
+    DEFAULT_ADMIN_TABLE_QUERY.searchQuery,
+  )
   const [page, setPage] = useState(DEFAULT_ADMIN_TABLE_QUERY.page)
   const [pageSize, setPageSize] = useState(defaultPageSize)
+  const searchDebounceTimerRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (searchDebounceTimerRef.current !== null) {
+        window.clearTimeout(searchDebounceTimerRef.current)
+      }
+    }
+  }, [])
 
   const resolvedTotalItems = totalItems ?? data.length
   const totalPages = Math.max(1, Math.ceil(resolvedTotalItems / pageSize))
@@ -279,18 +291,36 @@ export function AdminDataTable<TRow>({
   const handleSearchChange = (nextSearch: string) => {
     setSearchQuery(nextSearch)
     setPage(1)
-    emitQueryUpdate({
-      searchQuery: nextSearch,
-      page: 1,
-      pageSize,
-    })
+
+    if (searchDebounceTimerRef.current !== null) {
+      window.clearTimeout(searchDebounceTimerRef.current)
+    }
+
+    if (!nextSearch.trim()) {
+      setDebouncedSearchQuery('')
+      emitQueryUpdate({
+        searchQuery: '',
+        page: 1,
+        pageSize,
+      })
+      return
+    }
+
+    searchDebounceTimerRef.current = window.setTimeout(() => {
+      setDebouncedSearchQuery(nextSearch)
+      emitQueryUpdate({
+        searchQuery: nextSearch,
+        page: 1,
+        pageSize,
+      })
+    }, 250)
   }
 
   const handlePageChange = (nextPage: number) => {
     const clamped = Math.max(1, Math.min(nextPage, totalPages))
     setPage(clamped)
     emitQueryUpdate({
-      searchQuery,
+      searchQuery: debouncedSearchQuery,
       page: clamped,
       pageSize,
     })
@@ -300,7 +330,7 @@ export function AdminDataTable<TRow>({
     setPageSize(nextSize)
     setPage(1)
     emitQueryUpdate({
-      searchQuery,
+      searchQuery: debouncedSearchQuery,
       page: 1,
       pageSize: nextSize,
     })
@@ -309,14 +339,18 @@ export function AdminDataTable<TRow>({
   const handleFilterChanged = () => {
     setPage(1)
     emitQueryUpdate({
-      searchQuery,
+      searchQuery: debouncedSearchQuery,
       page: 1,
       pageSize,
     })
   }
 
   const handleResetAll = () => {
+    if (searchDebounceTimerRef.current !== null) {
+      window.clearTimeout(searchDebounceTimerRef.current)
+    }
     setSearchQuery('')
+    setDebouncedSearchQuery('')
     setPage(1)
     onResetFilters?.()
     emitQueryUpdate({

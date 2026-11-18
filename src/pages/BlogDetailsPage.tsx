@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { ArrowLeft, FileEdit, Loader2 } from 'lucide-react'
-import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import {BlogContent, BlogHeader, BlogPaywallDialog} from "@/components/blog"
 import { Button } from '@/components/ui/button'
+import { useCachedQuery } from '@/lib/useCachedQuery'
 import { useLocation, useNavigate } from '@/navigation/RouterContext'
 import { PATHS } from '@/navigation/paths'
 
@@ -24,7 +24,7 @@ export function BlogDetailsPage() {
     requestedId && unlockedBlogIds[requestedId],
   )
 
-  const blog = useQuery(api.blogs.getByIdOrSlug, {
+  const blog = useCachedQuery(api.blogs.getByIdOrSlug, {
     identifier: requestedId ?? undefined,
     isUnlocked: isReaderUnlocked,
   })

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, Clock, Loader2 } from 'lucide-react'
-import { useMutation, useQuery } from 'convex/react'
+import { useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { Button } from '@/components/ui/button.tsx'
 import { Card } from '@/components/ui/card.tsx'
 import type { BlogCategory } from '@/data/mockBlogs.ts'
+import { useCachedQuery } from '@/lib/useCachedQuery'
 import { useNavigate } from '@/navigation/RouterContext.tsx'
 import { PATHS } from '@/navigation/paths.ts'
 
@@ -106,7 +107,7 @@ export function RecentBlogsSection() {
   const [visibleCards, setVisibleCards] = useState(3)
 
   const ensureSeeded = useMutation(api.blogs.ensureSeeded)
-  const publishedBlogsQuery = useQuery(
+  const publishedBlogsQuery = useCachedQuery(
     api.blogs.listPublished,
     selectedCategory === 'All' ? {} : { category: selectedCategory },
   )

@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { Eye, FilePenLine, Plus, Star } from 'lucide-react'
-import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import {
   AdminContainer
@@ -17,6 +16,7 @@ import {
     type AdminTableFilterConfig,
     type AdminTableQueryState,
 } from '@/components/table'
+import { useCachedQuery } from '@/lib/useCachedQuery'
 import { useNavigate } from '@/navigation/RouterContext'
 import { PATHS } from '@/navigation/paths'
 
@@ -36,7 +36,7 @@ export function AdminBlogsPage() {
   const [selectedTiers, setSelectedTiers] = useState<SubscriptionFilter[]>([])
   const [selectedStatuses, setSelectedStatuses] = useState<StatusFilter[]>([])
 
-  const tableResult = useQuery(api.blogs.listAdminTable, {
+  const tableResult = useCachedQuery(api.blogs.listAdminTable, {
     searchQuery: tableQuery.searchQuery.trim() || undefined,
     categories: selectedCategories.length > 0 ? selectedCategories : undefined,
     subscriptionModes: selectedTiers.length > 0 ? selectedTiers : undefined,

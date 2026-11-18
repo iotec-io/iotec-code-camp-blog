@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useMutation, useQuery } from 'convex/react'
+import { useMutation } from 'convex/react'
 import {
   Clock,
   Eye,
@@ -28,6 +28,7 @@ import {
 } from '@/components/form'
 import { Card } from '@/components/ui/card'
 import { toast } from '@/components/ui/toaster'
+import { useCachedQuery } from '@/lib/useCachedQuery'
 import { useLocation, useNavigate } from '@/navigation/RouterContext'
 import { PATHS } from '@/navigation/paths'
 
@@ -166,11 +167,12 @@ export function CreateBlogPage() {
   const generateUploadUrl = useMutation(api.blogs.generateUploadUrl)
   const saveBlogMutation = useMutation(api.blogs.saveBlog)
 
-  const existingDraft = useQuery(
+  const existingDraft = useCachedQuery(
     api.blogs.getByIdOrSlug,
     initialEditId
       ? { identifier: initialEditId, isUnlocked: true, includeFullForEdit: true }
       : 'skip',
+    { keepPreviousData: false },
   )
 
   const {
