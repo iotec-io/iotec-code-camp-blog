@@ -24,7 +24,7 @@ interface BlogArticleHeaderProps {
   isUnlocked: boolean
 }
 
-export function BlogArticleHeader({ blog, isUnlocked }: BlogArticleHeaderProps) {
+export function BlogHeader({ blog, isUnlocked }: BlogArticleHeaderProps) {
   return (
     <header className="flex flex-col">
       {/* Top Meta Row: Badges & Read Time / Date */}

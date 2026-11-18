@@ -5,11 +5,11 @@ import {
   Loader2,
   RotateCcw,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
-import { AdminTablePagination } from './AdminTablePagination'
-import { AdminTableSearch } from './AdminTableSearch'
+import { Button } from '@/components/ui/button.tsx'
+import { Card } from '@/components/ui/card.tsx'
+import { cn } from '@/lib/utils.ts'
+import { AdminTablePagination } from './AdminTablePagination.tsx'
+import { AdminTableSearch } from './AdminTableSearch.tsx'
 
 export interface AdminTableColumn<TRow> {
   key: string

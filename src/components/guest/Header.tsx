@@ -1,5 +1,5 @@
-import { Link } from '../navigation/RouterContext'
-import { PATHS } from '../navigation/paths'
+import { Link } from '../../navigation/RouterContext.tsx'
+import { PATHS } from '@/navigation/paths.ts'
 
 export function Header() {
   return (

@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import { AdminTitle } from '@/components/admin'
+import { AdminContainer } from '@/components/admin'
 import {
   FormImageUploadInput,
   FormRadioCardGroup,
@@ -436,58 +436,56 @@ export function CreateBlogPage() {
   }, onValidationError)
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col">
-      {/* Reusable AdminTitle with Title, Subtitle, Buttons Array & Bottom Divider */}
-      <AdminTitle
-        title="Create Blog"
-        subtitle={
-          <div className="flex flex-wrap items-center gap-2.5">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold tracking-wider text-amber-800 uppercase">
-              <span
-                aria-hidden="true"
-                className="size-1.5 rounded-full bg-amber-600"
-              />
-              <span>Draft Mode</span>
-            </span>
-            <span className="text-xs text-muted-foreground">
-              Unpublished Working Copy
-            </span>
-          </div>
-        }
-        buttons={[
-          {
-            id: 'save-draft',
-            label: 'Save as Draft',
-            variant: 'outline',
-            icon: (
-              <Save aria-hidden="true" className="size-3.5 text-muted-foreground" />
-            ),
-            isLoading: isSavingDraft,
-            disabled: isSavingDraft || isPreviewing || isPublishing,
-            onClick: handleSaveAsDraft,
-          },
-          {
-            id: 'preview',
-            label: 'Preview',
-            variant: 'outline',
-            icon: (
-              <Eye aria-hidden="true" className="size-3.5 text-muted-foreground" />
-            ),
-            isLoading: isPreviewing,
-            disabled: isSavingDraft || isPreviewing || isPublishing,
-            onClick: handlePreviewDraft,
-          },
-          {
-            id: 'publish',
-            label: 'Publish Article',
-            variant: 'default',
-            icon: <Radio aria-hidden="true" className="size-3.5" />,
-            isLoading: isPublishing,
-            disabled: isSavingDraft || isPreviewing || isPublishing,
-            onClick: handlePublishArticle,
-          },
-        ]}
-      />
+    <AdminContainer
+      title="Create Blog"
+      subtitle={
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold tracking-wider text-amber-800 uppercase">
+            <span
+              aria-hidden="true"
+              className="size-1.5 rounded-full bg-amber-600"
+            />
+            <span>Draft Mode</span>
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Unpublished Working Copy
+          </span>
+        </div>
+      }
+      buttons={[
+        {
+          id: 'save-draft',
+          label: 'Save as Draft',
+          variant: 'outline',
+          icon: (
+            <Save aria-hidden="true" className="size-3.5 text-muted-foreground" />
+          ),
+          isLoading: isSavingDraft,
+          disabled: isSavingDraft || isPreviewing || isPublishing,
+          onClick: handleSaveAsDraft,
+        },
+        {
+          id: 'preview',
+          label: 'Preview',
+          variant: 'outline',
+          icon: (
+            <Eye aria-hidden="true" className="size-3.5 text-muted-foreground" />
+          ),
+          isLoading: isPreviewing,
+          disabled: isSavingDraft || isPreviewing || isPublishing,
+          onClick: handlePreviewDraft,
+        },
+        {
+          id: 'publish',
+          label: 'Publish Article',
+          variant: 'default',
+          icon: <Radio aria-hidden="true" className="size-3.5" />,
+          isLoading: isPublishing,
+          disabled: isSavingDraft || isPreviewing || isPublishing,
+          onClick: handlePublishArticle,
+        },
+      ]}
+    >
 
       {/* Main Two-Column Grid Layout */}
       <div className="mt-7 grid grid-cols-1 items-start gap-7 lg:grid-cols-12">
@@ -706,6 +704,6 @@ export function CreateBlogPage() {
           </Card>
         )}
       </div>
-    </div>
+    </AdminContainer>
   )
 }

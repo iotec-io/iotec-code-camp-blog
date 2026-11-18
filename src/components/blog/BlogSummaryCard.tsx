@@ -1,6 +1,6 @@
-import { Card } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
-import { BlogStatusChip, type BlogStatusType } from './BlogStatusChip'
+import { Card } from '@/components/ui/card.tsx'
+import { cn } from '@/lib/utils.ts'
+import { BlogStatusChip, type BlogStatusType } from './BlogStatusChip.tsx'
 
 export interface BlogSummaryCardProps {
   status: BlogStatusType

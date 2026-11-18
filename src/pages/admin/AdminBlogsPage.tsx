@@ -3,16 +3,20 @@ import { Eye, FilePenLine, Plus, Star } from 'lucide-react'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import {
-  AdminDataTable,
-  AdminTitle,
-  BlogStatusChip,
-  BlogSummaryCard,
-  DEFAULT_ADMIN_TABLE_QUERY,
-  TableActionButton,
-  type AdminTableColumn,
-  type AdminTableFilterConfig,
-  type AdminTableQueryState,
+  AdminContainer
 } from '@/components/admin'
+import {
+    BlogStatusChip,
+    BlogSummaryCard,
+} from '@/components/blog'
+import {
+    AdminDataTable,
+    DEFAULT_ADMIN_TABLE_QUERY,
+    TableActionButton,
+    type AdminTableColumn,
+    type AdminTableFilterConfig,
+    type AdminTableQueryState,
+} from '@/components/table'
 import { useNavigate } from '@/navigation/RouterContext'
 import { PATHS } from '@/navigation/paths'
 
@@ -176,21 +180,18 @@ export function AdminBlogsPage() {
   const archivedCount = tableResult?.counts.archived ?? 0
 
   return (
-    <div className="flex flex-1 flex-col">
-      {/* Reusable AdminTitle with Title, Subtitle, Buttons Array & Bottom Divider */}
-      <AdminTitle
-        title="Blogs"
-        subtitle="Manage archived blogs, editorial review drafts, and subscriber access tiers."
-        buttons={[
-          {
-            id: 'create-blog',
-            label: 'Create New Blog',
-            icon: <Plus aria-hidden="true" className="size-3.5" />,
-            onClick: () => navigate(PATHS.ADMIN_CREATE_BLOG),
-          },
-        ]}
-      />
-
+    <AdminContainer
+      title="Blogs"
+      subtitle="Manage archived blogs, editorial review drafts, and subscriber access tiers."
+      buttons={[
+        {
+          id: 'create-blog',
+          label: 'Create New Blog',
+          icon: <Plus aria-hidden="true" className="size-3.5" />,
+          onClick: () => navigate(PATHS.ADMIN_CREATE_BLOG),
+        },
+      ]}
+    >
       {/* 3 Status Summary Cards Matching Screenshot */}
       <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
         <BlogSummaryCard status="published" count={publishedCount} />
@@ -214,6 +215,6 @@ export function AdminBlogsPage() {
         onQueryChange={setTableQuery}
         className="mt-6"
       />
-    </div>
+    </AdminContainer>
   )
 }

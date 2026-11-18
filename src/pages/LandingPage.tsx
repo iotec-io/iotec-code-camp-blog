@@ -1,5 +1,4 @@
-import { HeroSection } from '@/components/HeroSection'
-import { RecentBlogsSection } from '@/components/RecentBlogsSection'
+import {HeroSection, RecentBlogsSection} from "@/components/landing"
 
 export function LandingPage() {
   return (

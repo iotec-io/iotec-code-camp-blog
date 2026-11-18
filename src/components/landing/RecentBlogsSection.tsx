@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, Clock, Loader2 } from 'lucide-react'
 import { useMutation, useQuery } from 'convex/react'
-import { api } from '../../convex/_generated/api'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import type { BlogCategory } from '@/data/mockBlogs'
-import { useNavigate } from '@/navigation/RouterContext'
-import { PATHS } from '@/navigation/paths'
+import { api } from '../../../convex/_generated/api'
+import { Button } from '@/components/ui/button.tsx'
+import { Card } from '@/components/ui/card.tsx'
+import type { BlogCategory } from '@/data/mockBlogs.ts'
+import { useNavigate } from '@/navigation/RouterContext.tsx'
+import { PATHS } from '@/navigation/paths.ts'
 
 type FilterCategory = 'All' | BlogCategory
 

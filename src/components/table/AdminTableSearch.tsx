@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import { Search } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils.ts'
 
 export interface AdminTableSearchProps {
   value: string

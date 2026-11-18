@@ -1,7 +1,7 @@
 import { ArrowRight, Lock } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useNavigate } from '../navigation/RouterContext'
-import { PATHS } from '../navigation/paths'
+import { Button } from '@/components/ui/button.tsx'
+import { useNavigate } from '../../navigation/RouterContext.tsx'
+import { PATHS } from '@/navigation/paths.ts'
 
 export function Footer() {
   const navigate = useNavigate()

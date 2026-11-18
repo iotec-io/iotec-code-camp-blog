@@ -1,7 +1,7 @@
 import { LogOut, User } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Link, NavLink, useNavigate } from '../navigation/RouterContext'
-import { ADMIN_NAV_ITEMS, PATHS } from '../navigation/paths'
+import { Button } from '@/components/ui/button.tsx'
+import { Link, NavLink, useNavigate } from '../../navigation/RouterContext.tsx'
+import { ADMIN_NAV_ITEMS, PATHS } from '../../navigation/paths.ts'
 
 export function AdminSidebar() {
   const navigate = useNavigate()

@@ -2,9 +2,7 @@ import { useMemo, useState } from 'react'
 import { ArrowLeft, FileEdit, Loader2 } from 'lucide-react'
 import { useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
-import { BlogArticleHeader } from '@/components/blog/BlogArticleHeader'
-import { BlogContent } from '@/components/blog/BlogContent'
-import { BlogPaywallDialog } from '@/components/blog/BlogPaywallDialog'
+import {BlogContent, BlogHeader, BlogPaywallDialog} from "@/components/blog"
 import { Button } from '@/components/ui/button'
 import { useLocation, useNavigate } from '@/navigation/RouterContext'
 import { PATHS } from '@/navigation/paths'
@@ -127,7 +125,7 @@ export function BlogDetailsPage() {
       </div>
 
       {/* 1. Article Header (Badges, Read Time, Date, Title, Subtitle, Featured Image, Author) */}
-      <BlogArticleHeader blog={blog} isUnlocked={isUnlocked} />
+      <BlogHeader blog={blog} isUnlocked={isUnlocked} />
 
       {/* 2. Rich-Text Article Content (Strictly preview-only HTML from Convex when locked) */}
       <BlogContent html={blog.authorizedHtml} isLocked={isLocked} />

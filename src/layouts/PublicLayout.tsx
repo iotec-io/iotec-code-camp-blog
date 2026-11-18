@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
-import { Header } from '../components/Header'
-import { Footer } from '../components/Footer'
+import {Footer, Header} from "@/components/guest"
 
 export function PublicLayout({ children }: { children: ReactNode }) {
   return (

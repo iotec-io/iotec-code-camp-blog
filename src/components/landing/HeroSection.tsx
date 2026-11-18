@@ -1,7 +1,7 @@
 import {PhoneIcon} from 'lucide-react'
 import heroImg from '@/assets/portrait.webp'
-import {Button} from '@/components/ui/button'
-import {Card} from '@/components/ui/card'
+import {Button} from '@/components/ui/button.tsx'
+import {Card} from '@/components/ui/card.tsx'
 import {EnvelopeSimpleIcon, LinkedinLogoIcon, WhatsappLogoIcon, XLogoIcon} from "@phosphor-icons/react"
 
 const AUTHOR_EMAIL = 'assubbi@techreport.journal'

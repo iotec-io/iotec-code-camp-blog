@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
-import { AdminSidebar } from '../components/AdminSidebar'
-import { AdminHeader } from '../components/AdminHeader'
-import { AdminFooter } from '../components/AdminFooter'
+import {AdminFooter, AdminHeader, AdminSidebar} from "@/components/admin"
+
 
 export function AdminLayout({ children }: { children: ReactNode }) {
   return (

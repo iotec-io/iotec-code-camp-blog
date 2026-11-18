@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils.ts'
 
 export interface AdminTablePaginationProps {
   currentPage: number

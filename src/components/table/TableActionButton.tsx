@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button.tsx'
+import { cn } from '@/lib/utils.ts'
 
 export interface TableActionButtonProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
