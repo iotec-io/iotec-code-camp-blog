@@ -1,17 +1,18 @@
+import React from 'react'
 import { MapPin } from 'lucide-react'
 
-export function AdminFooter() {
+export function AdminFooter(): React.JSX.Element {
   return (
     <footer className="mt-auto w-full border-t border-border bg-sidebar">
-      <div className="flex flex-col gap-6 px-8 py-6 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3.5">
+      <div className="flex flex-col gap-5 px-4 py-6 sm:px-6 md:flex-row md:items-center md:justify-between md:px-8">
+        <div className="flex min-w-0 items-center gap-3.5">
           <span
             aria-hidden="true"
             className="flex size-8 shrink-0 items-center justify-center rounded bg-primary font-serif text-xs font-semibold tracking-wider text-primary-foreground"
           >
             TR
           </span>
-          <div>
+          <div className="min-w-0">
             <p className="font-serif text-[15px] leading-tight font-semibold tracking-tight text-foreground">
               The Tech Report
               <sup className="ml-0.5 font-sans text-[8px] font-normal tracking-normal text-muted-foreground">

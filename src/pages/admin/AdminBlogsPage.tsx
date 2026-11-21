@@ -1,20 +1,15 @@
-import { useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Eye, FilePenLine, Plus, Star } from 'lucide-react'
 import { api } from '../../../convex/_generated/api'
+import { AdminContainer } from '@/components/admin'
+import { BlogStatusChip, BlogSummaryCard } from '@/components/blog'
 import {
-  AdminContainer
-} from '@/components/admin'
-import {
-    BlogStatusChip,
-    BlogSummaryCard,
-} from '@/components/blog'
-import {
-    AdminDataTable,
-    DEFAULT_ADMIN_TABLE_QUERY,
-    TableActionButton,
-    type AdminTableColumn,
-    type AdminTableFilterConfig,
-    type AdminTableQueryState,
+  AdminDataTable,
+  DEFAULT_ADMIN_TABLE_QUERY,
+  TableActionButton,
+  type AdminTableColumn,
+  type AdminTableFilterConfig,
+  type AdminTableQueryState,
 } from '@/components/table'
 import { useCachedQuery } from '@/lib/useCachedQuery'
 import { useNavigate } from '@/navigation/RouterContext'
@@ -24,15 +19,42 @@ type BlogCategoryFilter = 'Architecture' | 'Technology'
 type SubscriptionFilter = 'free' | 'paid'
 type StatusFilter = 'published' | 'draft' | 'archived'
 
-export function AdminBlogsPage() {
+interface BlogRowActionsProps {
+  id: string
+  title: string
+}
+
+function BlogRowActions({ id, title }: BlogRowActionsProps): React.JSX.Element {
   const navigate = useNavigate()
 
-  const [tableQuery, setTableQuery] = useState<AdminTableQueryState>(
-    DEFAULT_ADMIN_TABLE_QUERY,
+  const handleEdit = (): void => {
+    navigate(PATHS.ADMIN_CREATE_BLOG, { search: `?editId=${id}` })
+  }
+
+  const handlePreview = (): void => {
+    navigate(PATHS.BLOG_DETAILS, { search: `?id=${id}&from=create` })
+  }
+
+  return (
+    <div className="inline-flex items-center gap-1.5">
+      <TableActionButton
+        icon={FilePenLine}
+        label={`Edit ${title}`}
+        onClick={handleEdit}
+      />
+      <TableActionButton
+        icon={Eye}
+        label={`Preview ${title}`}
+        onClick={handlePreview}
+      />
+    </div>
   )
-  const [selectedCategories, setSelectedCategories] = useState<
-    BlogCategoryFilter[]
-  >([])
+}
+
+export function AdminBlogsPage(): React.JSX.Element {
+  const navigate = useNavigate()
+  const [tableQuery, setTableQuery] = useState<AdminTableQueryState>(DEFAULT_ADMIN_TABLE_QUERY)
+  const [selectedCategories, setSelectedCategories] = useState<BlogCategoryFilter[]>([])
   const [selectedTiers, setSelectedTiers] = useState<SubscriptionFilter[]>([])
   const [selectedStatuses, setSelectedStatuses] = useState<StatusFilter[]>([])
 
@@ -47,7 +69,11 @@ export function AdminBlogsPage() {
 
   type BlogRow = NonNullable<typeof tableResult>['items'][number]
 
-  const handleResetFilters = () => {
+  const handleCreate = (): void => {
+    navigate(PATHS.ADMIN_CREATE_BLOG)
+  }
+
+  const handleResetFilters = (): void => {
     setSelectedCategories([])
     setSelectedTiers([])
     setSelectedStatuses([])
@@ -105,7 +131,7 @@ export function AdminBlogsPage() {
         key: 'title',
         header: 'Title',
         render: (blog) => (
-          <p className="max-w-xs truncate font-serif text-[15px] font-normal text-foreground sm:max-w-md">
+          <p className="font-serif text-[15px] font-normal text-foreground wrap-break-word md:max-w-md md:truncate">
             {blog.title}
           </p>
         ),
@@ -148,31 +174,14 @@ export function AdminBlogsPage() {
         align: 'right',
         cellClassName: 'whitespace-nowrap',
         render: (blog) => (
-          <div className="inline-flex items-center gap-1.5">
-            <TableActionButton
-              icon={FilePenLine}
-              label={`Edit ${blog.title}`}
-              onClick={() =>
-                navigate(PATHS.ADMIN_CREATE_BLOG, {
-                  search: `?editId=${blog._id}`,
-                })
-              }
-            />
-
-            <TableActionButton
-              icon={Eye}
-              label={`Preview ${blog.title}`}
-              onClick={() =>
-                navigate(PATHS.BLOG_DETAILS, {
-                  search: `?id=${blog._id}&from=create`,
-                })
-              }
-            />
-          </div>
+          <BlogRowActions
+            id={blog._id}
+            title={blog.title}
+          />
         ),
       },
     ],
-    [navigate],
+    [],
   )
 
   const publishedCount = tableResult?.counts.published ?? 0
@@ -188,18 +197,24 @@ export function AdminBlogsPage() {
           id: 'create-blog',
           label: 'Create New Blog',
           icon: <Plus aria-hidden="true" className="size-3.5" />,
-          onClick: () => navigate(PATHS.ADMIN_CREATE_BLOG),
+          onClick: handleCreate,
         },
       ]}
     >
-      {/* 3 Status Summary Cards Matching Screenshot */}
-      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <BlogSummaryCard status="published" count={publishedCount} />
-        <BlogSummaryCard status="draft" count={draftCount} />
-        <BlogSummaryCard status="archived" count={archivedCount} />
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <BlogSummaryCard
+          status="published"
+          count={publishedCount}
+        />
+        <BlogSummaryCard
+          status="draft"
+          count={draftCount}
+        />
+        <BlogSummaryCard
+          status="archived"
+          count={archivedCount}
+        />
       </div>
-
-      {/* Reusable AdminDataTable with Built-in Search & Pagination Defaults */}
       <AdminDataTable
         caption="Articles and essays management table"
         columns={columns}
@@ -212,8 +227,8 @@ export function AdminBlogsPage() {
         onResetFilters={handleResetFilters}
         totalItems={tableResult?.totalFiltered ?? 0}
         itemNoun="written blogs"
-        onQueryChange={setTableQuery}
         className="mt-6"
+        onQueryChange={setTableQuery}
       />
     </AdminContainer>
   )

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import React, { type ReactNode } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -32,25 +32,25 @@ export function AdminTitle({
   subtitle,
   buttons = [],
   className,
-}: AdminTitleProps) {
+}: AdminTitleProps): React.JSX.Element {
   return (
     <div
       className={cn(
-        'flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between',
+        'flex w-full min-w-0 flex-col items-start gap-4 border-b border-border pb-5 md:flex-row md:items-end md:justify-between',
         className,
       )}
     >
-      <div>
-        <h1 className="font-serif text-3xl font-normal tracking-tight text-foreground sm:text-4xl">
+      <div className="w-full min-w-0 md:flex-1">
+        <h1 className="w-full font-serif text-3xl font-normal tracking-tight text-foreground wrap-break-word sm:text-4xl">
           {title}
         </h1>
         {subtitle && (
-          <div className="mt-2 text-xs text-muted-foreground">{subtitle}</div>
+          <div className="mt-2 w-full text-xs text-muted-foreground">{subtitle}</div>
         )}
       </div>
 
       {buttons.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex w-full flex-wrap items-center justify-start gap-2.5 md:w-auto md:shrink-0 md:justify-end">
           {buttons.map((btn, index) => {
             const isPrimary = !btn.variant || btn.variant === 'default'
             return (

@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import React, { useId } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils.ts'
 
@@ -22,7 +22,7 @@ export function AdminTablePagination({
   onPageChange,
   onPageSizeChange,
   className,
-}: AdminTablePaginationProps) {
+}: AdminTablePaginationProps): React.JSX.Element {
   const pageSizeSelectId = useId()
 
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
@@ -32,10 +32,27 @@ export function AdminTablePagination({
   const endItem =
     totalItems > 0 ? Math.min(safePage * pageSize, totalItems) : 0
 
+  const firstPage = Math.max(1, Math.min(safePage - 2, totalPages - 4))
   const pageNumbers = Array.from(
-    { length: totalPages },
-    (_, index) => index + 1,
+    { length: Math.min(5, totalPages) },
+    (_, index) => firstPage + index,
   )
+
+  const handlePageSizeSelect = (event: React.ChangeEvent<HTMLSelectElement>): void => {
+    onPageSizeChange?.(Number(event.currentTarget.value))
+  }
+
+  const handlePreviousPage = (): void => {
+    onPageChange(safePage - 1)
+  }
+
+  const handleNextPage = (): void => {
+    onPageChange(safePage + 1)
+  }
+
+  const handlePageClick = (event: React.MouseEvent<HTMLButtonElement>): void => {
+    onPageChange(Number(event.currentTarget.value))
+  }
 
   return (
     <div
@@ -65,7 +82,7 @@ export function AdminTablePagination({
             <select
               id={pageSizeSelectId}
               value={pageSize}
-              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              onChange={handlePageSizeSelect}
               className="rounded-md border border-border bg-white px-2 py-0.5 text-[11px] font-medium text-foreground outline-none focus-visible:border-primary"
             >
               {pageSizeOptions.map((size) => (
@@ -85,23 +102,27 @@ export function AdminTablePagination({
         <button
           type="button"
           disabled={safePage <= 1}
-          onClick={() => onPageChange(safePage - 1)}
+          onClick={handlePreviousPage}
           aria-label="Previous page"
           className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-card hover:text-foreground disabled:pointer-events-none disabled:opacity-35"
         >
           <ChevronLeft aria-hidden="true" className="size-3.5" />
         </button>
 
+        <span className="px-2 text-xs text-muted-foreground md:hidden">
+          Page {safePage} of {totalPages}
+        </span>
         {pageNumbers.map((pageNum) => {
           const isCurrent = pageNum === safePage
           return (
             <button
               key={pageNum}
               type="button"
+              value={pageNum}
               aria-current={isCurrent ? 'page' : undefined}
-              onClick={() => onPageChange(pageNum)}
+              onClick={handlePageClick}
               className={cn(
-                'inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-xs transition-colors',
+                'hidden size-7 cursor-pointer items-center justify-center rounded-md text-xs transition-colors md:inline-flex',
                 isCurrent
                   ? 'bg-primary font-semibold text-primary-foreground shadow-2xs'
                   : 'font-medium text-muted-foreground hover:bg-card hover:text-foreground',
@@ -115,7 +136,7 @@ export function AdminTablePagination({
         <button
           type="button"
           disabled={safePage >= totalPages}
-          onClick={() => onPageChange(safePage + 1)}
+          onClick={handleNextPage}
           aria-label="Next page"
           className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-card hover:text-foreground disabled:pointer-events-none disabled:opacity-35"
         >

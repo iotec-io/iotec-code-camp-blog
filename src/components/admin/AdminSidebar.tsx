@@ -1,18 +1,31 @@
-import { LogOut, User } from 'lucide-react'
+import React from 'react'
+import { LogOut, User, X } from 'lucide-react'
 import { Button } from '@/components/ui/button.tsx'
-import { Link, NavLink, useNavigate } from '../../navigation/RouterContext.tsx'
-import { ADMIN_NAV_ITEMS, PATHS } from '../../navigation/paths.ts'
+import { Link, useLocation, useNavigate } from '../../navigation/RouterContext.tsx'
+import { ADMIN_NAV_ITEMS, PATHS } from '@/navigation/paths.ts'
 
-export function AdminSidebar() {
+export interface AdminSidebarProps {
+  mobile?: boolean
+  onClose?: () => void
+}
+
+export function AdminSidebar({ mobile = false, onClose }: AdminSidebarProps): React.JSX.Element {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+
+  const handleExit = (): void => {
+    onClose?.()
+    navigate(PATHS.LANDING)
+  }
 
   return (
-    <aside className="sticky top-0 flex h-dvh w-60 shrink-0 flex-col justify-between border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+    <aside className="flex h-dvh w-64 max-w-[85vw] shrink-0 flex-col justify-between overflow-y-auto border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:w-60">
       <div>
-        <div className="px-5 pt-6 pb-5">
+        <div className="flex items-start justify-between gap-2 px-5 pt-6 pb-5">
           <Link
             to={PATHS.LANDING}
             className="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring"
+            onClick={onClose}
           >
             <span className="block font-serif text-[17px] leading-snug font-medium tracking-tight text-sidebar-foreground">
               The Tech Report
@@ -21,39 +34,44 @@ export function AdminSidebar() {
               Admin Dashboard
             </span>
           </Link>
+          {mobile && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Close navigation"
+              className="shrink-0"
+              onClick={onClose}
+            >
+              <X aria-hidden="true" className="size-5" />
+            </Button>
+          )}
         </div>
 
         <nav aria-label="Admin" className="mt-1 px-3">
           <ul className="space-y-1">
             {ADMIN_NAV_ITEMS.map((item) => {
               const Icon = item.icon
+              const isActive = pathname === item.path || pathname.startsWith(`${item.path}/`)
 
               return (
                 <li key={item.path}>
-                  <NavLink
+                  <Link
                     to={item.path}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring ${
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring ${
                         isActive
                           ? 'bg-sidebar-primary font-medium text-sidebar-primary-foreground shadow-2xs'
                           : 'font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                      }`
-                    }
+                      }`}
+                    onClick={onClose}
                   >
-                    {({ isActive }) => (
-                      <>
-                        <Icon
-                          aria-hidden="true"
-                          className={`size-4 shrink-0 ${
-                            isActive
-                              ? 'text-sidebar-primary-foreground/90'
-                              : 'text-muted-foreground'
-                          }`}
-                        />
-                        <span>{item.label}</span>
-                      </>
-                    )}
-                  </NavLink>
+                    <Icon
+                      aria-hidden="true"
+                      className={`size-4 shrink-0 ${isActive ? 'text-sidebar-primary-foreground/90' : 'text-muted-foreground'}`}
+                    />
+                    <span>{item.label}</span>
+                  </Link>
                 </li>
               )
             })}
@@ -84,9 +102,9 @@ export function AdminSidebar() {
             type="button"
             variant="ghost"
             size="icon-sm"
-            onClick={() => navigate(PATHS.LANDING)}
             aria-label="Exit Admin Dashboard to Landing Page"
             className="shrink-0 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            onClick={handleExit}
           >
             <LogOut aria-hidden="true" className="size-4" />
           </Button>

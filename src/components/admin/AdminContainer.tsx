@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import React, { type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { AdminTitle, type AdminTitleProps } from './AdminTitle'
 
@@ -14,11 +14,11 @@ export function AdminContainer({
   children,
   className,
   titleClassName,
-}: AdminContainerProps) {
+}: AdminContainerProps): React.JSX.Element {
   return (
     <div
       className={cn(
-        'mx-auto flex w-full max-w-6xl flex-1 flex-col',
+        'mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col',
         className,
       )}
     >

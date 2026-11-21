@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import React, { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   Check,
   ChevronDown,
@@ -10,6 +10,8 @@ import { Card } from '@/components/ui/card.tsx'
 import { cn } from '@/lib/utils.ts'
 import { AdminTablePagination } from './AdminTablePagination.tsx'
 import { AdminTableSearch } from './AdminTableSearch.tsx'
+import { AdminMobileFilters } from './AdminMobileFilters.tsx'
+import { AdminMobileList } from './AdminMobileList.tsx'
 
 export interface AdminTableColumn<TRow> {
   key: string
@@ -81,13 +83,15 @@ export interface AdminDataTableProps<TRow> {
   className?: string
 }
 
+interface FilterDropdownProps {
+  filter: AdminTableFilterConfig
+  onAfterChange: () => void
+}
+
 function FilterDropdown({
   filter,
   onAfterChange,
-}: {
-  filter: AdminTableFilterConfig
-  onAfterChange: () => void
-}) {
+}: FilterDropdownProps): React.JSX.Element {
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mode = filter.mode ?? 'single'
@@ -136,6 +140,8 @@ function FilterDropdown({
     }
   }
 
+  const handleToggleOpen = () => setIsOpen((prev) => !prev)
+
   const handleToggleOption = (optionValue: string) => {
     if (mode === 'single') {
       if (
@@ -162,13 +168,17 @@ function FilterDropdown({
     onAfterChange()
   }
 
+  const handleOptionClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    handleToggleOption(event.currentTarget.value)
+  }
+
   return (
     <div ref={containerRef} className="relative">
       <button
         type="button"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={handleToggleOpen}
         className={cn(
           'inline-flex h-9 min-w-36 cursor-pointer items-center justify-between gap-3 rounded-lg border bg-white px-3 text-xs font-medium transition-colors outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30',
           selectedCount > 0
@@ -221,7 +231,8 @@ function FilterDropdown({
                 type="button"
                 role="option"
                 aria-selected={isSelected}
-                onClick={() => handleToggleOption(option.value)}
+                value={option.value}
+                onClick={handleOptionClick}
                 className={cn(
                   'flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors',
                   isSelected
@@ -261,7 +272,7 @@ export function AdminDataTable<TRow>({
   pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
   onQueryChange,
   className,
-}: AdminDataTableProps<TRow>) {
+}: AdminDataTableProps<TRow>): React.JSX.Element {
   const [searchQuery, setSearchQuery] = useState(
     DEFAULT_ADMIN_TABLE_QUERY.searchQuery,
   )
@@ -373,19 +384,23 @@ export function AdminDataTable<TRow>({
       {/* Uniform Search & Filter Toolbar */}
       {hasToolbar && (
         <div className="border-b border-border/80 bg-card/45 px-5 py-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            {enableSearch ? (
+          <div className="flex min-w-0 items-start gap-2 lg:items-center">
+            {enableSearch && (
               <AdminTableSearch
                 value={searchQuery}
-                onChange={handleSearchChange}
                 placeholder={searchPlaceholder}
                 helperText={searchHelperText}
+                onChange={handleSearchChange}
               />
-            ) : (
-              <div />
             )}
-
-            <div className="flex flex-wrap items-center gap-2">
+            {filters.length > 0 && (
+              <AdminMobileFilters
+                filters={filters}
+                onAfterChange={handleFilterChanged}
+                onReset={handleResetAll}
+              />
+            )}
+            <div className="hidden flex-wrap items-center gap-2 md:flex">
               {filters.map((filter) => (
                 <FilterDropdown
                   key={filter.id}
@@ -410,7 +425,15 @@ export function AdminDataTable<TRow>({
       )}
 
       {/* Configurable Table */}
-      <div className="overflow-x-auto">
+      <AdminMobileList
+        caption={caption}
+        columns={columns}
+        data={data}
+        getRowKey={getRowKey}
+        isLoading={isLoading}
+        emptyMessage={emptyMessage}
+      />
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-left text-xs">
           <caption className="sr-only">{caption}</caption>
           <thead className="border-b border-border bg-card/35 text-[10px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">

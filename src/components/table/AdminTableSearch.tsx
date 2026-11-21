@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import React, { useId } from 'react'
 import { Search } from 'lucide-react'
 import { cn } from '@/lib/utils.ts'
 
@@ -16,12 +16,16 @@ export function AdminTableSearch({
   placeholder = 'Search entries by title or keyword...',
   helperText,
   className,
-}: AdminTableSearchProps) {
+}: AdminTableSearchProps): React.JSX.Element {
   const searchInputId = useId()
   const searchHelperId = useId()
 
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    onChange(event.currentTarget.value)
+  }
+
   return (
-    <div className={cn('flex-1', className)}>
+    <div className={cn('min-w-0 flex-1', className)}>
       <label htmlFor={searchInputId} className="sr-only">
         {placeholder}
       </label>
@@ -35,10 +39,10 @@ export function AdminTableSearch({
           id={searchInputId}
           type="search"
           value={value}
-          onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           aria-describedby={helperText ? searchHelperId : undefined}
           className="w-full bg-transparent text-xs text-foreground placeholder:text-muted-foreground/75 outline-none"
+          onChange={handleInputChange}
         />
       </div>
 
