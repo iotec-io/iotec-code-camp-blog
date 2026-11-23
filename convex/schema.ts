@@ -17,11 +17,49 @@ export const subscriptionModeValidator = v.union(
   v.literal("paid"),
 );
 
+export const transactionTypeValidator = v.union(
+    v.literal("subscription"),
+    v.literal("withdrawal")
+)
+
+export const transactionStatusValidator = v.union(
+    v.literal("pending"),
+    v.literal("processing"),
+    v.literal("failed"),
+    v.literal("completed"),
+)
+
+export const currencyValidator = v.union(
+    v.literal("UGX"),
+    v.literal("ITX"),
+)
+
 export default defineSchema({
   tasks: defineTable({
     text: v.string(),
     isCompleted: v.boolean(),
   }),
+
+  transactions: defineTable({
+    blogId: v.id("blogs"),
+    amount: v.number(),
+    currency: currencyValidator,
+    payerEmail: v.string(),
+    payerPhoneNumber: v.string(),
+    payerName: v.optional(v.string()),
+    externalId: v.optional(v.string()),
+    status: transactionStatusValidator,
+    statusMessage: v.optional(v.string()),
+    transactionType: transactionTypeValidator,
+  })
+    .index(
+      "by_blogId_and_payerEmail_and_status_and_transactionType",
+      ["blogId", "payerEmail", "status", "transactionType"],
+    )
+  .index(
+      "by_blogId_and_payerEmail_and_transactionType",
+      ["blogId", "payerEmail", "transactionType"],
+  ),
 
   blogs: defineTable({
     slug: v.string(),

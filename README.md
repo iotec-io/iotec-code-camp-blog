@@ -116,6 +116,21 @@ pnpm run dev:backend
 ```
 This command will prompt you to log in to Convex, link or create a project, generate files in `convex/_generated/`, and automatically write `VITE_CONVEX_URL` to `.env.local`.
 
+### iotecPay blog payments
+
+Configure these variables on the **Convex deployment** (Dashboard > Settings > Environment Variables), not only in `.env.local`:
+
+| Variable | Purpose |
+| :--- | :--- |
+| `IOTEC_AUTH_ISSUER` | iotecPay OAuth realm URL |
+| `IOTEC_AUTH_CLIENT_ID` | iotecPay client ID |
+| `IOTEC_AUTH_CLIENT_SECRET` | iotecPay client secret |
+| `IOTEC_PAY_BASE_URL` | iotecPay API base URL |
+| `IOTEC_PAY_WALLET_ID` | Wallet receiving blog collections |
+| `IOTEC_PAY_CURRENCY` | `ITX` for staging/dev test collections; `UGX` for live Ugandan payments |
+
+The amount is read from the published blog on the server; the deployment's `IOTEC_PAY_CURRENCY` determines the collection currency and the displayed currency. `ITX` accepts only provider test numbers `0111777770` through `0111777779`. `UGX` accepts local ten-digit numbers starting with `07` (sent to the provider as `2567...`). Payments are unavailable if the currency is unset. Collections are checked against iotecPay before article access is granted. Email-only restore is intentionally supported for each paid blog; anyone who knows a purchaser's email can restore their access, so add email verification if that is not acceptable for your audience. Do not expose payment credentials through `VITE_` variables.
+
 ### Step 3: Start the Application
 Once dependencies are installed, start both the Vite frontend server and the Convex backend watcher in parallel:
 ```bash

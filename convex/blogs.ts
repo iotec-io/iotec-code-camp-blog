@@ -1,5 +1,6 @@
 import { v, ConvexError } from "convex/values";
 import {
+  env,
   internalMutation,
   mutation,
   query,
@@ -48,6 +49,7 @@ const publicBlogItemValidator = v.object({
   subscriptionMode: subscriptionModeValidator,
   isPaid: v.boolean(),
   price: priceValidator,
+  paymentCurrency: v.union(v.literal("ITX"), v.literal("UGX"), v.null()),
   priceLabel: v.string(),
   priceAmount: v.string(),
   coverImageStorageId: v.optional(v.id("_storage")),
@@ -64,6 +66,7 @@ const blogDetailsResponseValidator = v.union(
   v.null(),
   publicBlogItemValidator.extend({
     authorizedHtml: v.string(),
+    hasAccess: v.boolean(),
     fullContentHtmlForEdit: v.optional(v.string()),
   }),
 );
@@ -103,7 +106,8 @@ async function resolveCoverImageUrl(
 async function toPublicBlogItem(ctx: QueryCtx, doc: Doc<"blogs">) {
   const resolvedImageUrl = await resolveCoverImageUrl(ctx, doc);
   const isPaid = doc.subscriptionMode === "paid";
-  const currency = doc.price.currency || "UGX";
+  const paymentCurrency = env.IOTEC_PAY_CURRENCY ?? null;
+  const currency = paymentCurrency ?? (doc.price.currency || "UGX");
   const formattedPrice = `${currency} ${formatCurrencyAmount(doc.price.amount)}`;
   const priceLabel = isPaid ? `Paid · ${formattedPrice}` : "Free";
   const priceAmount = isPaid ? formattedPrice : "Free";
@@ -129,7 +133,8 @@ async function toPublicBlogItem(ctx: QueryCtx, doc: Doc<"blogs">) {
     status: doc.status,
     subscriptionMode: doc.subscriptionMode,
     isPaid,
-    price: doc.price,
+    price: { ...doc.price, currency },
+    paymentCurrency,
     priceLabel,
     priceAmount,
     coverImageStorageId: doc.coverImageStorageId,
@@ -330,8 +335,7 @@ export const listAdminTable = query({
 export const getByIdOrSlug = query({
   args: {
     identifier: v.optional(v.string()),
-    isUnlocked: v.optional(v.boolean()),
-    includeFullForEdit: v.optional(v.boolean()),
+    accessKey: v.optional(v.string()),
   },
   returns: blogDetailsResponseValidator,
   handler: async (ctx, args) => {
@@ -363,12 +367,20 @@ export const getByIdOrSlug = query({
 
     const baseItem = await toPublicBlogItem(ctx, doc);
     const isPaid = doc.subscriptionMode === "paid";
-    const canViewFull = !isPaid || Boolean(args.isUnlocked);
+    const accessId = args.accessKey
+      ? ctx.db.normalizeId("transactions", args.accessKey)
+      : null;
+    const access = accessId ? await ctx.db.get(accessId) : null;
+    const canViewFull = !isPaid ||
+      (access?.blogId === doc._id &&
+        access.transactionType === "subscription" &&
+        access.status === "completed");
 
     return {
       ...baseItem,
+      hasAccess: canViewFull,
       authorizedHtml: canViewFull ? doc.fullContentHtml : doc.previewContentHtml,
-      fullContentHtmlForEdit: args.includeFullForEdit
+      fullContentHtmlForEdit: (!isPaid || doc.status !== "published")
         ? doc.fullContentHtml
         : undefined,
     };
@@ -460,6 +472,11 @@ export const saveBlog = mutation({
       const existing = await ctx.db.get(args.blogId);
       if (!existing) {
         throw new ConvexError("Blog draft not found.");
+      }
+      if (existing.status === "published" && existing.subscriptionMode === "paid") {
+        throw new ConvexError(
+          "Published paid blogs cannot be edited until admin authentication is configured.",
+        );
       }
 
       const nextCoverStorageId =

@@ -1,54 +1,40 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import React, { useEffect, useState, type FormEvent } from 'react'
+import { useAction } from 'convex/react'
+import { ConvexError } from 'convex/values'
+import type { Id } from '../../../convex/_generated/dataModel'
+import { api } from '../../../convex/_generated/api'
 import {
   AlertCircle,
   AtSign,
   CheckCircle2,
-  ChevronDown,
   Loader2,
   Lock,
   Smartphone,
   Sparkles,
   X,
 } from 'lucide-react'
-import {
-  FormRadioCardGroup,
-  FormTextInput,
-  type RadioCardOption,
-} from '@/components/form'
+import { FormTextInput } from '@/components/form'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { toast } from '@/components/ui/toaster'
 
 type AccessTab = 'new-access' | 'restore-access'
-type MobileNetwork = 'mtn' | 'airtel'
 type PaywallSessionStatus = 'idle' | 'processing' | 'success' | 'error'
-type MockOutcomeMode = 'approve' | 'fail'
 
 interface BlogPaywallDialogProps {
+  blogId: Id<'blogs'>
   priceAmount: string
-  onUnlock: () => void
+  paymentCurrency: 'ITX' | 'UGX' | null
+  onUnlock: (accessKey: string) => void
 }
 
-const MOBILE_NETWORK_OPTIONS: readonly RadioCardOption<MobileNetwork>[] = [
-  {
-    value: 'mtn',
-    label: 'MTN MoMo',
-    icon: <span aria-hidden="true" className="size-2.5 rounded-full bg-amber-400" />,
-    activeClassName:
-      'border-primary bg-primary/5 font-semibold text-foreground shadow-2xs',
-  },
-  {
-    value: 'airtel',
-    label: 'Airtel Money',
-    icon: <span aria-hidden="true" className="size-2.5 rounded-full bg-red-500" />,
-    activeClassName:
-      'border-primary bg-primary/5 font-semibold text-foreground shadow-2xs',
-  },
-]
-
-export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogProps) {
+export function BlogPaywallDialog({
+  blogId,
+  priceAmount,
+  paymentCurrency,
+  onUnlock,
+}: BlogPaywallDialogProps): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<AccessTab>('new-access')
-  const [selectedNetwork, setSelectedNetwork] = useState<MobileNetwork>('mtn')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [emailError, setEmailError] = useState<string | undefined>(undefined)
@@ -56,103 +42,154 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
 
   const [sessionStatus, setSessionStatus] = useState<PaywallSessionStatus>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [mockOutcome] = useState<MockOutcomeMode>('approve')
+  const [attempt, setAttempt] = useState<{
+    transactionId: Id<'transactions'>
+  } | null>(null)
+  const initiateCollection = useAction(api.iotecPay.iotecPayActions.initiateCollection)
+  const checkCollectionStatus = useAction(api.iotecPay.iotecPayActions.checkCollectionStatus)
+  const restoreAccess = useAction(api.iotecPay.iotecPayActions.restoreAccess)
 
-  const ussdTimerRef = useRef<number | null>(null)
-  const unlockTimerRef = useRef<number | null>(null)
-
-  const clearTimers = () => {
-    if (ussdTimerRef.current !== null) {
-      window.clearTimeout(ussdTimerRef.current)
-      ussdTimerRef.current = null
-    }
-    if (unlockTimerRef.current !== null) {
-      window.clearTimeout(unlockTimerRef.current)
-      unlockTimerRef.current = null
-    }
-  }
-
-  useEffect(() => {
-    return () => clearTimers()
-  }, [])
-
-  const networkLabel = selectedNetwork === 'mtn' ? 'MTN MoMo' : 'Airtel Money'
-
-  const completeWithSuccess = () => {
-    clearTimers()
+  const completeWithSuccess = (accessKey: string): void => {
     setErrorMessage(null)
     setEmailError(undefined)
     setPhoneError(undefined)
     setSessionStatus('success')
 
     toast.success(
-      'Mobile Money Payment Confirmed',
-      `Your ${priceAmount} contribution via ${networkLabel} was approved. Full essay unlocked.`,
+      paymentCurrency === 'ITX' ? 'ITX Test Payment Confirmed' : 'Mobile Money Payment Confirmed',
+      `Your ${priceAmount} ${paymentCurrency === 'ITX' ? 'test payment' : 'Mobile Money payment'} was confirmed. Full essay unlocked.`,
     )
-
-    unlockTimerRef.current = window.setTimeout(() => {
-      onUnlock()
-    }, 1500)
+    onUnlock(accessKey)
   }
 
-  const completeWithFailure = (customReason?: string) => {
-    clearTimers()
-    const reason =
-      customReason ??
-      `The ${networkLabel} USSD session timed out or was declined on the handset. No funds were deducted—please try again.`
-
+  const completeWithFailure = (reason: string): void => {
     setErrorMessage(reason)
     setSessionStatus('error')
 
-    toast.error('USSD Authorization Failed', reason)
+    toast.error('Payment Not Completed', reason)
   }
 
-  const handleTabSwitch = (nextTab: AccessTab) => {
+  useEffect(() => {
+    if (!attempt) return
+    let cancelled = false
+    let timer: number
+    const startedAt = Date.now()
+    const poll = async (): Promise<void> => {
+      try {
+        const result = await checkCollectionStatus(attempt)
+        if (cancelled) return
+        if (result.status === 'completed') {
+          completeWithSuccess(attempt.transactionId)
+          return
+        }
+        if (result.status === 'failed') {
+          setAttempt(null)
+          completeWithFailure(result.message ?? 'The Mobile Money request was declined. Please try again.')
+          return
+        }
+      } catch {
+        // Provider status can be temporarily unavailable while the request settles.
+      }
+      if (cancelled) return
+      if (Date.now() - startedAt >= 120_000) {
+        setAttempt(null)
+        completeWithFailure('Payment is still unconfirmed. If you approved it, return with your email to check again.')
+        return
+      }
+      timer = window.setTimeout(poll, 4000)
+    }
+    timer = window.setTimeout(poll, 3000)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [attempt, checkCollectionStatus, onUnlock, priceAmount])
+
+  const handleTabSwitch = (nextTab: AccessTab): void => {
     setActiveTab(nextTab)
     setEmailError(undefined)
     setPhoneError(undefined)
     setErrorMessage(null)
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault()
     if (sessionStatus === 'processing' || sessionStatus === 'success') return
+    if (!paymentCurrency && activeTab === 'new-access') {
+      completeWithFailure('Payments are not configured yet. Please try again later.')
+      return
+    }
 
     const trimmedEmail = email.trim()
     const trimmedPhone = phone.replace(/\D/g, '')
 
     let hasFieldError = false
-    if (!trimmedEmail || !trimmedEmail.includes('@')) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       setEmailError('Please enter a valid email address.')
       hasFieldError = true
     } else {
       setEmailError(undefined)
     }
 
-    if (activeTab === 'new-access' && trimmedPhone.length < 7) {
-      setPhoneError('Enter a valid Mobile Money number (e.g., 77 123 4567).')
+    const validPhone = paymentCurrency === 'ITX'
+      ? /^011177777[0-9]$/.test(trimmedPhone)
+      : /^07[0-9]{8}$/.test(trimmedPhone)
+    if (activeTab === 'new-access' && !validPhone) {
+      setPhoneError(paymentCurrency === 'ITX'
+        ? 'Use an iotecPay test number from 0111777770 to 0111777779.'
+        : 'Enter a 10-digit Mobile Money number starting with 07.')
       hasFieldError = true
     } else {
       setPhoneError(undefined)
     }
 
     if (hasFieldError) {
-      completeWithFailure(
-        'Please resolve the highlighted form errors to proceed with authorization.',
-      )
       return
     }
 
     setErrorMessage(null)
     setSessionStatus('processing')
 
-    ussdTimerRef.current = window.setTimeout(() => {
-      if (mockOutcome === 'fail') {
-        completeWithFailure()
-      } else {
-        completeWithSuccess()
+    try {
+      if (activeTab === 'restore-access') {
+        const key = await restoreAccess({ blogId, email: trimmedEmail })
+        if (key) {
+          completeWithSuccess(key)
+        } else {
+          completeWithFailure('No completed payment was found for this email and blog.')
+        }
+        return
       }
-    }, 3200)
+      const result = await initiateCollection({
+        blogId,
+        email: trimmedEmail,
+        phoneNumber: trimmedPhone,
+      })
+      if (result.status === 'completed') {
+        completeWithSuccess(result.transactionId)
+      } else if (result.status === 'failed') {
+        completeWithFailure('This payment was declined. Please try again.')
+      } else {
+        setAttempt({ transactionId: result.transactionId })
+      }
+    } catch (error) {
+      const message = error instanceof ConvexError && typeof error.data === 'string'
+        ? error.data
+        : 'Payment could not be started. Please try again.'
+      completeWithFailure(message)
+    }
+  }
+
+  const handleNewAccessTab = (): void => handleTabSwitch('new-access')
+  const handleRestoreAccessTab = (): void => handleTabSwitch('restore-access')
+  const handleDismissError = (): void => setErrorMessage(null)
+  const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    setEmail(event.target.value)
+    if (emailError) setEmailError(undefined)
+  }
+  const handlePhoneChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    setPhone(event.target.value)
+    if (phoneError) setPhoneError(undefined)
   }
 
   return (
@@ -181,7 +218,7 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
             </div>
             <button
               type="button"
-              onClick={() => setErrorMessage(null)}
+              onClick={handleDismissError}
               aria-label="Dismiss error message"
               className="cursor-pointer rounded p-0.5 text-red-600 transition-colors hover:bg-red-100 hover:text-red-900"
             >
@@ -226,6 +263,15 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
             {priceAmount}
           </span>
         </div>
+        {!paymentCurrency && (
+          <p
+            role="alert"
+            className="mt-4 text-center text-xs text-red-700"
+          >
+            New payments are unavailable until a currency is configured. Previous
+            purchases can still be restored by email.
+          </p>
+        )}
 
         {/* STATE 1: Processing & Waiting for USSD Session */}
         {sessionStatus === 'processing' && (
@@ -239,46 +285,30 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
             </div>
 
             <p className="mt-3 text-sm font-semibold text-foreground">
-              Waiting for USSD Confirmation on Handset&hellip;
+              {activeTab === 'restore-access'
+                ? 'Checking Your Previous Payment...'
+                : paymentCurrency === 'ITX'
+                  ? 'Waiting for ITX Test Payment...'
+                  : 'Waiting for Mobile Money Confirmation...'}
             </p>
             <p className="mx-auto mt-1.5 max-w-sm text-xs leading-relaxed text-muted-foreground">
-              A secure <strong className="text-foreground">{networkLabel}</strong> push
-              prompt for <strong className="text-foreground">{priceAmount}</strong> has
-              been sent to{' '}
-              <strong className="text-foreground">
-                +256 {phone.trim() || '77 123 4567'}
-              </strong>
-              . Please enter your Mobile Money PIN on your phone.
+              {activeTab === 'restore-access'
+                ? 'Checking the payment linked to your email address.'
+                : `Approve the ${priceAmount} Mobile Money request on your phone to unlock this blog.`}
             </p>
 
             <div className="mt-4 flex items-center justify-center gap-2 text-[11px] font-medium text-primary">
               <Loader2 aria-hidden="true" className="size-3.5 animate-spin" />
-              <span>Listening for instant settlement callback&hellip;</span>
+              <span>Checking payment status&hellip;</span>
             </div>
 
-            {/* Interactive Simulation Controls for Testing Both Outcomes Immediately */}
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-2 border-t border-border/80 pt-4">
-              <span className="w-full text-[10px] font-medium tracking-wider text-muted-foreground uppercase">
-                Mock USSD Handset Response:
-              </span>
-              <Button
-                type="button"
-                size="xs"
-                onClick={completeWithSuccess}
-                className="bg-emerald-600 px-3 text-white hover:bg-emerald-700"
-              >
-                Approve PIN (Success)
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="xs"
-                onClick={() => completeWithFailure()}
-                className="border-red-200 bg-white px-3 text-red-700 hover:bg-red-50"
-              >
-                Decline / Timeout (Fail)
-              </Button>
-            </div>
+            {activeTab === 'new-access' && (
+              <p className="mt-4 text-xs text-muted-foreground">
+                {paymentCurrency === 'ITX'
+                  ? 'Using an iotecPay staging test number.'
+                  : 'Keep this page open while you approve the prompt on your phone.'}
+              </p>
+            )}
           </div>
         )}
 
@@ -297,7 +327,7 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
               Authorization Approved &mdash; Unlocking Essay
             </p>
             <p className="mt-1 text-xs text-emerald-800">
-              Your lifetime reading pass is linked to{' '}
+              Your reading pass for this blog is linked to{' '}
               <strong>{email.trim()}</strong>. Revealing full dispatch&hellip;
             </p>
           </div>
@@ -316,7 +346,7 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
                 type="button"
                 role="tab"
                 aria-selected={activeTab === 'new-access'}
-                onClick={() => handleTabSwitch('new-access')}
+                onClick={handleNewAccessTab}
                 className={`cursor-pointer rounded-md py-2 text-xs transition-all ${
                   activeTab === 'new-access'
                     ? 'bg-white font-semibold text-primary shadow-2xs'
@@ -330,7 +360,7 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
                 type="button"
                 role="tab"
                 aria-selected={activeTab === 'restore-access'}
-                onClick={() => handleTabSwitch('restore-access')}
+                onClick={handleRestoreAccessTab}
                 className={`cursor-pointer rounded-md py-2 text-xs transition-all ${
                   activeTab === 'restore-access'
                     ? 'bg-white font-semibold text-primary shadow-2xs'
@@ -345,14 +375,6 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
               {/* Form 1: New Access (Mobile Money) vs Form 2: Returning Reader (Restore) */}
               {activeTab === 'new-access' ? (
                 <>
-                  <FormRadioCardGroup
-                    label="Select Mobile Money Network"
-                    layout="stacked"
-                    options={MOBILE_NETWORK_OPTIONS}
-                    value={selectedNetwork}
-                    onChange={setSelectedNetwork}
-                  />
-
                   <FormTextInput
                     label="Your Email Address"
                     required
@@ -360,19 +382,16 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
                     inputMode="email"
                     autoComplete="email"
                     value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value)
-                      if (emailError) setEmailError(undefined)
-                    }}
                     placeholder="reader@domain.com"
                     leadingIcon={
                       <AtSign aria-hidden="true" className="size-3.5" />
                     }
-                    hint="Used to securely associate and restore your lifetime reading pass."
+                    hint="Used to associate and restore access to this blog."
                     error={emailError}
                     containerClassName="mt-4"
                     inputWrapperClassName="h-9"
                     className="text-xs"
+                    onChange={handleEmailChange}
                   />
 
                   <FormTextInput
@@ -382,28 +401,18 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
                     inputMode="tel"
                     autoComplete="tel-national"
                     value={phone}
-                    onChange={(e) => {
-                      setPhone(e.target.value)
-                      if (phoneError) setPhoneError(undefined)
-                    }}
-                    placeholder="77 123 4567"
-                    startAddon={
-                      <>
-                        <span>+256 (UG)</span>
-                        <ChevronDown
-                          aria-hidden="true"
-                          className="size-3 text-muted-foreground"
-                        />
-                      </>
-                    }
+                    placeholder={paymentCurrency === 'ITX' ? '0111777770' : '077 123 4567'}
                     leadingIcon={
                       <Smartphone aria-hidden="true" className="size-3.5" />
                     }
-                    hint="Direct authorization; standard network tariffs apply."
+                    hint={paymentCurrency === 'ITX'
+                      ? 'Staging only: use 0111777770 through 0111777779.'
+                      : 'Ugandan Mobile Money number starting with 07; network tariffs may apply.'}
                     error={phoneError}
                     containerClassName="mt-4"
                     inputWrapperClassName="h-9"
                     className="text-xs"
+                    onChange={handlePhoneChange}
                   />
                 </>
               ) : (
@@ -414,18 +423,15 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
                   inputMode="email"
                   autoComplete="email"
                   value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value)
-                    if (emailError) setEmailError(undefined)
-                  }}
                   placeholder="reader@domain.com"
                   leadingIcon={
                     <AtSign aria-hidden="true" className="size-3.5" />
                   }
-                  hint="Enter the email address used when you originally unlocked this dispatch."
+                  hint="Enter the email address used when you paid for this blog."
                   error={emailError}
                   inputWrapperClassName="h-9"
                   className="text-xs"
+                  onChange={handleEmailChange}
                 />
               )}
 
@@ -433,30 +439,38 @@ export function BlogPaywallDialog({ priceAmount, onUnlock }: BlogPaywallDialogPr
               <Button
                 type="submit"
                 size="lg"
+                disabled={!paymentCurrency && activeTab === 'new-access'}
                 className="mt-5 h-10 w-full gap-2 bg-primary text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
               >
                 <Lock aria-hidden="true" className="size-3.5" />
                 <span>
                   {activeTab === 'new-access'
-                    ? 'Pay via Mobile Money & Read Now'
+                    ? paymentCurrency === 'ITX'
+                      ? 'Run ITX Test Payment & Read Now'
+                      : 'Pay via Mobile Money & Read Now'
                     : 'Restore Reading Pass & Read Now'}
                 </span>
               </Button>
 
               {/* Instant Handset Prompt Info Box */}
-              <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-border bg-card/70 p-3 text-[11px] leading-relaxed text-muted-foreground">
-                <Sparkles
-                  aria-hidden="true"
-                  className="mt-0.5 size-3.5 shrink-0 text-amber-600"
-                />
-                <p>
-                  <strong className="font-semibold text-foreground">
-                    Instant Handset Prompt:
-                  </strong>{' '}
-                  After clicking, a secure USSD pop-up will appear immediately on your
-                  device. Enter your secret Mobile Money PIN to approve the transaction.
-                </p>
-              </div>
+              {activeTab === 'new-access' && (
+                <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-border bg-card/70 p-3 text-[11px] leading-relaxed text-muted-foreground">
+                  <Sparkles
+                    aria-hidden="true"
+                    className="mt-0.5 size-3.5 shrink-0 text-amber-600"
+                  />
+                  <p>
+                    <strong className="font-semibold text-foreground">
+                      {paymentCurrency === 'ITX'
+                        ? 'iotecPay Test Numbers:'
+                        : 'Instant Handset Prompt:'}
+                    </strong>{' '}
+                    {paymentCurrency === 'ITX'
+                      ? 'For staging, use 0111777770 through 0111777779.'
+                      : 'After requesting payment, approve the Mobile Money prompt on your phone.'}
+                  </p>
+                </div>
+              )}
             </form>
           </>
         )}

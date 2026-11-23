@@ -1,16 +1,17 @@
-import { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { useQuery } from 'convex/react'
 import { ArrowLeft, FileEdit, Loader2 } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import {BlogContent, BlogHeader, BlogPaywallDialog} from "@/components/blog"
 import { Button } from '@/components/ui/button'
-import { useCachedQuery } from '@/lib/useCachedQuery'
 import { useLocation, useNavigate } from '@/navigation/RouterContext'
 import { PATHS } from '@/navigation/paths'
 
-export function BlogDetailsPage() {
+export function BlogDetailsPage(): React.JSX.Element {
   const navigate = useNavigate()
   const { search } = useLocation()
-  const [unlockedBlogIds, setUnlockedBlogIds] = useState<Record<string, boolean>>({})
+  const [accessKeys, setAccessKeys] = useState<Record<string, string>>({})
+  const [fallbackBlogId, setFallbackBlogId] = useState<string | null>(null)
 
   const { requestedId, cameFromCreate } = useMemo(() => {
     const params = new URLSearchParams(search)
@@ -20,14 +21,19 @@ export function BlogDetailsPage() {
     }
   }, [search])
 
-  const isReaderUnlocked = Boolean(
-    requestedId && unlockedBlogIds[requestedId],
-  )
+  const currentIdentifier = requestedId ?? fallbackBlogId
+  const accessKey = currentIdentifier
+    ? accessKeys[currentIdentifier] ?? window.localStorage.getItem(`blog-access:${currentIdentifier}`) ?? undefined
+    : undefined
 
-  const blog = useCachedQuery(api.blogs.getByIdOrSlug, {
+  const blog = useQuery(api.blogs.getByIdOrSlug, {
     identifier: requestedId ?? undefined,
-    isUnlocked: isReaderUnlocked,
+    accessKey,
   })
+
+  useEffect(() => {
+    if (!requestedId && blog) setFallbackBlogId(blog._id)
+  }, [requestedId, blog])
 
   if (blog === undefined) {
     return (
@@ -55,15 +61,13 @@ export function BlogDetailsPage() {
     )
   }
 
-  const isUnlocked = !blog.isPaid || isReaderUnlocked
+  const isUnlocked = blog.hasAccess
   const isLocked = blog.isPaid && !isUnlocked
 
-  const handleUnlockCurrentBlog = () => {
-    setUnlockedBlogIds((prev) => ({
-      ...prev,
-      [blog._id]: true,
-      ...(requestedId ? { [requestedId]: true } : {}),
-    }))
+  const handleUnlockCurrentBlog = (key: string): void => {
+    const identifier = requestedId ?? blog._id
+    window.localStorage.setItem(`blog-access:${identifier}`, key)
+    setAccessKeys((prev) => ({ ...prev, [identifier]: key }))
   }
 
   // const handleRelockCurrentBlog = () => {
@@ -133,7 +137,9 @@ export function BlogDetailsPage() {
       {/* 3. Paywall Dialog (Displayed when blog is paid and not unlocked) */}
       {isLocked && (
         <BlogPaywallDialog
+          blogId={blog._id}
           priceAmount={blog.priceAmount}
+          paymentCurrency={blog.paymentCurrency}
           onUnlock={handleUnlockCurrentBlog}
         />
       )}

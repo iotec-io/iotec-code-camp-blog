@@ -170,7 +170,7 @@ export function CreateBlogPage() {
   const existingDraft = useCachedQuery(
     api.blogs.getByIdOrSlug,
     initialEditId
-      ? { identifier: initialEditId, isUnlocked: true, includeFullForEdit: true }
+      ? { identifier: initialEditId }
       : 'skip',
     { keepPreviousData: false },
   )
@@ -229,9 +229,19 @@ export function CreateBlogPage() {
         existingDraft.price.amount > 0 ? existingDraft.price.amount : 5000,
       )
 
-      const resolvedHtml =
-        existingDraft.fullContentHtmlForEdit ?? existingDraft.authorizedHtml
+      const publishedPaidWithoutEditorAccess =
+        existingDraft.isPaid && existingDraft.status === 'published' &&
+        !existingDraft.fullContentHtmlForEdit
+      const resolvedHtml = publishedPaidWithoutEditorAccess
+        ? ''
+        : existingDraft.fullContentHtmlForEdit ?? existingDraft.authorizedHtml
       setValue('bodyHtml', resolvedHtml)
+      if (publishedPaidWithoutEditorAccess) {
+        toast.error(
+          'Editing unavailable',
+          'Published paid articles require an authenticated admin editor. The preview cannot replace the full article.',
+        )
+      }
 
       if (existingDraft.coverImageStorageId) {
         setCoverImageStorageId(existingDraft.coverImageStorageId)
@@ -336,6 +346,12 @@ export function CreateBlogPage() {
     values: CreateBlogFormValues,
     targetStatus: 'draft' | 'published',
   ) => {
+    if (
+      existingDraft?.isPaid && existingDraft.status === 'published' &&
+      !existingDraft.fullContentHtmlForEdit
+    ) {
+      throw new Error('Published paid articles cannot be edited without authenticated admin access.')
+    }
     const normalizedTags = parseCommaSeparatedTags(values.tagsInput)
 
     const result = await saveBlogMutation({
